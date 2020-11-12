@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="8aIzxRAbgeg8v5Rj5ESBsJGewJL2ZYEC_NtvWgtILCE">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.panaihua.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="GC日志是一个很重要的工具，它准确记录了每一次的GC的执行时间和执行结果，通过分析GC日志可以优化堆设置和GC设置，或者改进应用程序的对象分配模式。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JVM GC日志收集">
+<meta property="og:url" content="https://www.panaihua.com/jvm-gc-log/index.html">
+<meta property="og:site_name" content="人淡如菊">
+<meta property="og:description" content="GC日志是一个很重要的工具，它准确记录了每一次的GC的执行时间和执行结果，通过分析GC日志可以优化堆设置和GC设置，或者改进应用程序的对象分配模式。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2016-04-21T16:00:00.000Z">
+<meta property="article:modified_time" content="2020-11-12T08:28:18.322Z">
+<meta property="article:author" content="谏言">
+<meta property="article:tag" content="jvm">
+<meta property="article:tag" content="gc">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://www.panaihua.com/jvm-gc-log/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>JVM GC日志收集 | 人淡如菊</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?d95aaa0fb1f08b11ad55f2baeb0f2146";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">人淡如菊</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">饭碗Java，爱好Python</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://www.panaihua.com/jvm-gc-log/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="谏言">
+      <meta itemprop="description" content="老子来到这个世界就没想着活着回去">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="人淡如菊">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          JVM GC日志收集
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2016-04-22 00:00:00" itemprop="dateCreated datePublished" datetime="2016-04-22T00:00:00+08:00">2016-04-22</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-11-12 16:28:18" itemprop="dateModified" datetime="2020-11-12T16:28:18+08:00">2020-11-12</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>GC日志是一个很重要的工具，它准确记录了每一次的GC的执行时间和执行结果，通过分析GC日志可以优化堆设置和GC设置，或者改进应用程序的对象分配模式。</p>
+<h2 id="XX-PrintGC"><a href="#XX-PrintGC" class="headerlink" title="-XX:+PrintGC"></a>-XX:+PrintGC</h2><p>参数-XX:+PrintGC（或者-verbose:gc）开启了简单GC日志模式，为每一次新生代（young generation）的GC和每一次的Full GC打印一行信息。下面举例说明：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[GC 246656K-&gt;243120K(376320K), 0.0929090 secs]</span><br><span class="line">[Full GC 243120K-&gt;241951K(629760K), 1.5589690 secs]</span><br></pre></td></tr></table></figure>
+<p>每行开始首先是GC的类型（可以是“GC”或者“Full GC”），然后是在GC之前和GC之后已使用的堆空间，再然后是当前的堆容量，最后是GC持续的时间（以秒计）。<br>第一行的意思就是GC将已使用的堆空间从246656K减少到243120K，当前的堆容量（译者注：GC发生时）是376320K，GC持续的时间是0.0929090秒。<br>简单模式的GC日志格式是与GC算法无关的，日志也没有提供太多的信息。在上面的例子中，我们甚至无法从日志中判断是否GC将一些对象从young generation移到了old generation。所以详细模式的GC日志更有用一些。</p>
+<h2 id="XX-PrintGCDetails"><a href="#XX-PrintGCDetails" class="headerlink" title="-XX:PrintGCDetails"></a>-XX:PrintGCDetails</h2><p>如果不是使用-XX:+PrintGC，而是-XX:PrintGCDetails，就开启了详细GC日志模式。在这种模式下，日志格式和所使用的GC算法有关。我们首先看一下使用Throughput垃圾收集器在young generation中生成的日志。为了便于阅读这里将一行日志分为多行并使用缩进。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[GC [PSYoungGen: 142816K-&gt;10752K(142848K)] 246648K-&gt;243136K(375296K), 0.0935090secs]</span><br><span class="line">[Times: user&#x3D;0.55 sys&#x3D;0.10, real&#x3D;0.09 secs]</span><br></pre></td></tr></table></figure>
+<p>我们可以很容易发现：这是一次在young generation中的GC，它将已使用的堆空间从246648K减少到了243136K，用时0.0935090秒。此外我们还可以得到更多的信息：所使用的垃圾收集器（即PSYoungGen）、young generation的大小和使用情况（在这个例子中“PSYoungGen”垃圾收集器将young generation所使用的堆空间从142816K减少到10752K）。<br>既然我们已经知道了young generation的大小，所以很容易判定发生了GC，因为young generation无法分配更多的对象空间：已经使用了142848K中的142816K。我们可以进一步得出结论，多数从young generation移除的对象仍然在堆空间中，只是被移到了old generation：通过对比绿色的和蓝色的部分可以发现即使young generation几乎被完全清空（从142816K减少到10752K），但是所占用的堆空间仍然基本相同（从246648K到243136K）。<br>详细日志的“Times”部分包含了GC所使用的CPU时间信息，分别为操作系统的用户空间和系统空间所使用的时间。同时，它显示了GC运行的“真实”时间（0.09秒是0.0929090秒的近似值）。如果CPU时间（译者注：0.55秒+0.10秒）明显多于”真实“时间（译者注：0.09秒），我们可以得出结论：GC使用了多线程运行。这样的话CPU时间就是所有GC线程所花费的CPU时间的总和。实际上我们的例子中的垃圾收集器使用了8个线程。  </p>
+<p>接下来看一下Full GC的输出日志</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[Full GC</span><br><span class="line">     [PSYoungGen: 10752K-&gt;9707K(142848K)]</span><br><span class="line">     [ParOldGen: 232384K-&gt;232244K(485888K)] 243136K-&gt;241951K(628736K)</span><br><span class="line">     [PSPermGen: 3162K-&gt;3161K(21504K)], 1.5265450 secs</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+<p>除了关于young generation的详细信息，日志也提供了old generation和permanent generation的详细信息。对于这三个generations，一样也可以看到所使用的垃圾收集器、堆空间的大小、GC前后的堆使用情况。需要注意的是显示堆空间的大小等于young generation和old generation各自堆空间的和。以上面为例，堆空间总共占用了241951K，其中9707K在young generation，232244K在old generation。Full GC持续了大约1.53秒，用户空间的CPU执行时间为10.96秒，说明GC使用了多线程（和之前一样8个线程）。<br>对不同generation详细的日志可以让我们分析GC的原因，如果某个generation的日志显示在GC之前，堆空间几乎被占满，那么很有可能就是这个generation触发了GC。但是在上面的例子中，三个generation中的任何一个都不是这样的，在这种情况下是什么原因触发了GC呢。对于Throughput垃圾收集器，在某一个generation被过度使用之前，GC ergonomics（参考本系列第6节）决定要启动GC。<br>Full GC也可以通过显式的请求而触发，可以是通过应用程序，或者是一个外部的JVM接口。这样触发的GC可以很容易在日志里分辨出来，因为输出的日志是以“Full GC(System)”开头的，而不是“Full GC”。<br>对于Serial垃圾收集器，详细的GC日志和Throughput垃圾收集器是非常相似的。唯一的区别是不同的generation日志可能使用了不同的GC算法（例如：old generation的日志可能以Tenured开头，而不是ParOldGen）。使用垃圾收集器作为一行日志的开头可以方便我们从日志就判断出JVM的GC设置。<br>对于CMS垃圾收集器，young generation的详细日志也和Throughput垃圾收集器非常相似，但是old generation的日志却不是这样。对于CMS垃圾收集器，在old generation中的GC是在不同的时间片内与应用程序同时运行的。GC日志自然也和Full GC的日志不同。而且在不同时间片的日志夹杂着在此期间young generation的GC日志。但是了解了上面介绍的GC日志的基本元素，也不难理解在不同时间片内的日志。只是在解释GC运行时间时要特别注意，由于大多数时间片内的GC都是和应用程序同时运行的，所以和那种独占式的GC相比，GC的持续时间更长一些并不说明一定有问题。<br>正如我们在第7节中所了解的，即使CMS垃圾收集器没有完成一个CMS周期，Full GC也可能会发生。如果发生了GC，在日志中会包含触发Full GC的原因，例如众所周知的”concurrent mode failure“。<br>为了避免过于冗长，我这里就不详细说明CMS垃圾收集器的日志了。另外，CMS垃圾收集器的作者做了详细的说明（在这里），强烈建议阅读。  </p>
+<h2 id="XX-PrintGCTimeStamps和-XX-PrintGCDateStamps"><a href="#XX-PrintGCTimeStamps和-XX-PrintGCDateStamps" class="headerlink" title="-XX:+PrintGCTimeStamps和-XX:+PrintGCDateStamps"></a>-XX:+PrintGCTimeStamps和-XX:+PrintGCDateStamps</h2><p>使用-XX:+PrintGCTimeStamps可以将时间和日期也加到GC日志中。表示自JVM启动至今的时间戳会被添加到每一行中。例子如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">0.185: [GC 66048K-&gt;53077K(251392K), 0.0977580 secs]</span><br><span class="line">0.323: [GC 119125K-&gt;114661K(317440K), 0.1448850 secs]</span><br><span class="line">0.603: [GC 246757K-&gt;243133K(375296K), 0.2860800 secs]</span><br></pre></td></tr></table></figure>
+<p>如果指定了-XX:+PrintGCDateStamps，每一行就添加上了绝对的日期和时间。 </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">2014-01-03T12:08:38.102-0100: [GC 66048K-&gt;53077K(251392K), 0.0959470 secs]</span><br><span class="line">2014-01-03T12:08:38.239-0100: [GC 119125K-&gt;114661K(317440K), 0.1421720 secs]</span><br><span class="line">2014-01-03T12:08:38.513-0100: [GC 246757K-&gt;243133K(375296K), 0.2761000 secs]</span><br></pre></td></tr></table></figure>
+<p>如果需要也可以同时使用两个参数。推荐同时使用这两个参数，因为这样在关联不同来源的GC日志时很有帮助。  </p>
+<h2 id="Xloggc"><a href="#Xloggc" class="headerlink" title="-Xloggc"></a>-Xloggc</h2><p>缺省的GC日志时输出到终端的，使用-Xloggc:也可以输出到指定的文件。需要注意这个参数隐式的设置了参数-XX:+PrintGC和-XX:+PrintGCTimeStamps，但为了以防在新版本的JVM中有任何变化，我仍建议显示的设置这些参数。  </p>
+<h2 id="可管理的JVM参数"><a href="#可管理的JVM参数" class="headerlink" title="可管理的JVM参数"></a>可管理的JVM参数</h2><p>一个常常被讨论的问题是在生产环境中GC日志是否应该开启。因为它所产生的开销通常都非常有限，因此我的答案是需要开启。但并不一定在启动JVM时就必须指定GC日志参数。<br>针对高延迟问题调优HotSpot VM时，下面两个命令行选项特别有用，通过它们可以获得应用程序由于执行VM安全操作而阻塞的时间以及两个安全点操作之间应用程序运行的时间。  </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">-XX:+PrintGCApplicationStoppedTime</span><br><span class="line">-XX:+PrintGCApplicationConcurrentTime</span><br></pre></td></tr></table></figure>
+<p>何谓安全操作：安全操作使JVM进入到一种状态：所有的java应用线程都被阻塞、执行本地代码的线程都被禁止返回VM执行Java代码。安全操作常用于虚拟机需要进行内部操作时，此时所有的Java线程都被显式地置于阻塞状态且不能修改Java堆的情况。<br>HotSpot JVM有一类特别的参数叫做可管理的参数。对于这些参数，可以在运行时修改他们的值。我们这里所讨论的所有参数以及以“PrintGC”开头的参数都是可管理的参数。这样在任何时候我们都可以开启或是关闭GC日志。比如我们可以使用JDK自带的jinfo工具来设置这些参数，或者是通过JMX客户端调用HotSpotDiagnostic MXBean的setVMOption方法来设置这些参数。<br>附上tomcat输出gc日志的配置：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">export CATALINA_OPTS&#x3D;&quot;$CATALINA_OPTS -XX:+PrintGCDetails&quot;</span><br><span class="line">export CATALINA_OPTS&#x3D;&quot;$CATALINA_OPTS -XX:+PrintGCTimeStamps&quot;</span><br><span class="line">export CATALINA_OPTS&#x3D;&quot;$CATALINA_OPTS -XX:+PrintGCDateStamps&quot;</span><br><span class="line">export CATALINA_OPTS&#x3D;&quot;$CATALINA_OPTS -Xloggc:&#x2F;data&#x2F;logs&#x2F;ordercenter_cms&#x2F;tomcat.gc.log&quot;</span><br><span class="line">export JAVA_OPTS&#x3D;&quot;-server -Xms1024m -Xmx1536m&quot;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/jvm/" rel="tag"># jvm</a>
+              <a href="/tags/gc/" rel="tag"># gc</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/jvm-gc-tactics/" rel="prev" title="JVM GC 策略&内存申请、对象衰老">
+      <i class="fa fa-chevron-left"></i> JVM GC 策略&内存申请、对象衰老
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/jvm-memory-gc/" rel="next" title="JVM 常用垃圾回收机制和垃圾收集器">
+      JVM 常用垃圾回收机制和垃圾收集器 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#XX-PrintGC"><span class="nav-number">1.</span> <span class="nav-text">-XX:+PrintGC</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#XX-PrintGCDetails"><span class="nav-number">2.</span> <span class="nav-text">-XX:PrintGCDetails</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#XX-PrintGCTimeStamps%E5%92%8C-XX-PrintGCDateStamps"><span class="nav-number">3.</span> <span class="nav-text">-XX:+PrintGCTimeStamps和-XX:+PrintGCDateStamps</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Xloggc"><span class="nav-number">4.</span> <span class="nav-text">-Xloggc</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%AF%E7%AE%A1%E7%90%86%E7%9A%84JVM%E5%8F%82%E6%95%B0"><span class="nav-number">5.</span> <span class="nav-text">可管理的JVM参数</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">谏言</p>
+  <div class="site-description" itemprop="description">老子来到这个世界就没想着活着回去</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">20</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">19</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/kongjun01" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;kongjun01" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">谏言</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

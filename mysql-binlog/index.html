@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="8aIzxRAbgeg8v5Rj5ESBsJGewJL2ZYEC_NtvWgtILCE">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.panaihua.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="我们现在遇到一个问题，每次在发券系统里面增加一个表操作的时候，都会实现缓存，实现了缓存就要实现通知刷新，所以程序里只要有更新的操作都要硬编码发送一次消息。这个过程维护成本太大，就想到是否有什么方法可以实现自动通知刷新。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="记一次 Binlog 的应用">
+<meta property="og:url" content="https://www.panaihua.com/mysql-binlog/index.html">
+<meta property="og:site_name" content="人淡如菊">
+<meta property="og:description" content="我们现在遇到一个问题，每次在发券系统里面增加一个表操作的时候，都会实现缓存，实现了缓存就要实现通知刷新，所以程序里只要有更新的操作都要硬编码发送一次消息。这个过程维护成本太大，就想到是否有什么方法可以实现自动通知刷新。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://www.panaihua.com/images/binlog-1.png">
+<meta property="og:image" content="https://www.panaihua.com/images/binlog-2.png">
+<meta property="article:published_time" content="2019-01-17T16:00:00.000Z">
+<meta property="article:modified_time" content="2020-11-12T09:28:06.476Z">
+<meta property="article:author" content="谏言">
+<meta property="article:tag" content="mysql">
+<meta property="article:tag" content="binlog">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.panaihua.com/images/binlog-1.png">
+
+<link rel="canonical" href="https://www.panaihua.com/mysql-binlog/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>记一次 Binlog 的应用 | 人淡如菊</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?d95aaa0fb1f08b11ad55f2baeb0f2146";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">人淡如菊</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">饭碗Java，爱好Python</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://www.panaihua.com/mysql-binlog/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="谏言">
+      <meta itemprop="description" content="老子来到这个世界就没想着活着回去">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="人淡如菊">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          记一次 Binlog 的应用
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-01-18 00:00:00" itemprop="dateCreated datePublished" datetime="2019-01-18T00:00:00+08:00">2019-01-18</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-11-12 17:28:06" itemprop="dateModified" datetime="2020-11-12T17:28:06+08:00">2020-11-12</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>我们现在遇到一个问题，每次在发券系统里面增加一个表操作的时候，都会实现缓存，实现了缓存就要实现通知刷新，所以程序里只要有更新的操作都要硬编码发送一次消息。这个过程维护成本太大，就想到是否有什么方法可以实现自动通知刷新。</p>
+<p>所以我就在这里小小去了解一下 Binlog。</p>
+<h3 id="什么是Binlog"><a href="#什么是Binlog" class="headerlink" title="什么是Binlog"></a>什么是Binlog</h3><p><code>MySQL</code> 有四种类型的日志——Error Log、General Query Log、Binary Log 和 Slow Query Log。</p>
+<p>第一个是错误日志，记录 <code>MySQL</code> 的一些错误。第二个是一般查询日志，记录 <code>MySQL</code> 正在做的事情，比如客户端的连接和断开、来自客户端每条 <code>Sql Statement</code> 记录信息；如果你想准确知道客户端到底传了什么瞎 [哔哔] 玩意儿给服务端，这个日志就非常管用了，不过它非常影响性能。第四个是慢查询日志，记录一些查询比较慢的 SQL 语句——这种日志非常常用，主要是给开发者调优用的。</p>
+<p>剩下的第三种就是<code>Binlog</code>了，包含了一些事件，这些事件描述了数据库的改动，如建表、数据改动等，也包括一些潜在改动，比如</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">DELETE</span> <span class="keyword">FROM</span> xxx <span class="keyword">WHERE</span> bing = xxx</span><br></pre></td></tr></table></figure>
+
+<p>然而一条数据都没被删掉的这种情况。除非使用 Row-based logging，否则会包含所有改动数据的<code>SQL Statement</code>。</p>
+<p>显然，我们执行 <code>SELECT</code> 等不设计数据变更的语句是不会记录 <code>Binlog</code> 的，而涉及到数据更新则会记录。要注意的是，对支持事务的引擎如InnoDB而言，必须要提交了事务才会记录 <code>Binlog</code>。<code>Binlog</code> 是在事务最终commit前写入的，<code>Binlog</code> 什么时候刷新到磁盘跟参数sync_binlog相关。如果设置为0，则表示<code>MySQL</code>不控制 <code>Binlog</code> 的刷新，由文件系统去控制它缓存的刷新，而如果设置为不为0的值则表示每sync_binlog次事务，MySQL调用文件系统的刷新操作刷新 <code>Binlog</code> 到磁盘中。设为1是最安全的，在系统故障时最多丢失一个事务的更新，但是会对性能有所影响，一般情况下会设置为100或者0，牺牲一定的一致性来获取更好的性能.</p>
+<h3 id="流程设计"><a href="#流程设计" class="headerlink" title="流程设计"></a>流程设计</h3><p><img src="/images/binlog-1.png"></p>
+<p>mysql-binlog-connector-server实现监听binlog，收到之后放入队列中，另起一个线程消耗队列。<br>利用钩子在宕机之前保存消费到的position。</p>
+<blockquote>
+<p>保存position的信息本来想是放在mysql，但是后期会增加HA，需要使用Zookeeper保持心跳，为了方便还是选择保存在Zookeeper</p>
+</blockquote>
+<p><img src="/images/binlog-2.png"></p>
+<ul>
+<li><p>EventListener: 在向mysql发送dump命令之前会先从Zookeeper中获取上次解析成功的 <code>Position</code> （如果是第一次启动，则获取初始指定位置或者当前数据段binlog位点）。mysql接受到dump命令后，由EventListener从mysql上pull binlog数据进行解析并传递给 <code>parse</code> (传递给parse 模块进行数据存储，是一个阻塞操作，直到存储成功)，传送成功之后更新 <code>Position</code>。</p>
+</li>
+<li><p>MessagContaner: 保存解析成功的数据，交给 <code>DataSchdule</code> 处理。设计这个模块是为了缓冲，防止重复发送消息。</p>
+</li>
+</ul>
+<p>下面是模拟mysql的slave时收到的消息</p>
+<blockquote>
+<p>{before=[797, 3528, zjy-客户1-广告1, 100004, 2017-03-24, 2017-04-09, 1488857138210, 1488857138210, 0, 0, 2, 4, null, null, null, null, null, null, null, null, 1, null, null, null, null, null, null, Mon Mar 06 23:00:36 CST 2017, Thu Oct 12 03:23:18 CST 2017, 0, 0, 0, 26526708857909, null, 1, 0, 1.000], after=[797, 3528, zjy-客户1-广告1, 100004, 2017-10-11, 2017-04-09, 1488857138210, 1488857138210, 0, 0, 2, 4, null, null, null, null, null, null, null, null, 1, null, null, null, null, null, null, Mon Mar 06 23:00:36 CST 2017, Thu Oct 12 22:01:15 CST 2017, 0, 0, 0, 26526708857909, null, 1, 0, 1.000]},<br>    {before=[885, 3528, zjy-客户1-广告1, 333001, 2017-03-08, 2017-04-27, 1489993531824, 1489993531824, 0, 0, 2, 4, null, null, null, null, null, null, null, null, 1, null, null, null, null, null, null, Mon Mar 20 23:05:31 CST 2017, Thu Oct 12 01:45:16 CST 2017, 0, 0, 0, 27795375556109, null, 0, 0, 1.000], after=[885, 3528, zjy-客户1-广告1, 333001, 2017-10-11, 2017-04-27, 1489993531824, 1489993531824, 0, 0, 2, 4, null, null, null, null, null, null, null, null, 1, null, null, null, null, null, null, Mon Mar 20 23:05:31 CST 2017, Thu Oct 12 22:01:15 CST 2017, 0, 0, 0, 27795375556109, null, 0, 0, 1.000]},<br>    {before=[4882, 3531, zjy-客户2-广告1, 12200, 2017-04-14, 2017-04-14, 1492148740122, 1492148740122, 1, 0, 0, 3, null, null, null, null, null, null, null, null, 1, null, null, null, null, null, null, Fri Apr 14 21:44:11 CST 2017, Sat Sep 02 00:17:55 CST 2017, 0, 0, 0, 30055174218659, null, 0, 0, 1.000], after=[4882, 3531, zjy-客户2-广告1, 12200, 2017-10-11, 2017-04-14, 1492148740122, 1492148740122, 1, 0, 0, 3, null, null, null, null, null, null, null, null, 1, null, null, null, null, null, null, Fri Apr 14 21:44:11 CST 2017, Thu Oct 12 22:01:15 CST 2017, 0, 0, 0, 30055174218659, null, 0, 0, 1.000]}<br>]}}Event{header=EventHeaderV4{timestamp=1507788075000, eventType=XID, serverId=1, headerLength=19, dataLength=12, nextPosition=81793595, flags=0}, data=XidEventData{xid=3329634}}</p>
+</blockquote>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>这里相当于一个迷你的 <code>Canal</code> ，还有很多场景没有实现，比如一致性，HA。如果有机会在参考 <code>Canal</code> 的设计。</p>
+<p>参考资料：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/u012758088/article/details/78788523">canal系列—Canal 的介绍</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/mysql/" rel="tag"># mysql</a>
+              <a href="/tags/binlog/" rel="tag"># binlog</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/react-base/" rel="prev" title="React 入门 （基础概念）">
+      <i class="fa fa-chevron-left"></i> React 入门 （基础概念）
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/same-key/" rel="next" title="如何判断SSL证书的私钥和证书匹配">
+      如何判断SSL证书的私钥和证书匹配 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFBinlog"><span class="nav-number">2.</span> <span class="nav-text">什么是Binlog</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%81%E7%A8%8B%E8%AE%BE%E8%AE%A1"><span class="nav-number">3.</span> <span class="nav-text">流程设计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">谏言</p>
+  <div class="site-description" itemprop="description">老子来到这个世界就没想着活着回去</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">20</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">19</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/kongjun01" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;kongjun01" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">谏言</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

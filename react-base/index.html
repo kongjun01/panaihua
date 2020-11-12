@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="8aIzxRAbgeg8v5Rj5ESBsJGewJL2ZYEC_NtvWgtILCE">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.panaihua.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="开始的时候我是很抵触的，因为觉得后端写前端最后肯定会不三不四，之前也写过前后端全包的项目，但是对后面的工作都没什么帮助，所以觉得对个人发展也不是很好，而且全栈工程师在杭州需求也不多。没办法，公司就是不给配前端，只能一个人整，想想不能影响项目进度啊，最后倒霉还是自己，所以硬着头皮跳下去了...">
+<meta property="og:type" content="article">
+<meta property="og:title" content="React 入门 （基础概念）">
+<meta property="og:url" content="https://www.panaihua.com/react-base/index.html">
+<meta property="og:site_name" content="人淡如菊">
+<meta property="og:description" content="开始的时候我是很抵触的，因为觉得后端写前端最后肯定会不三不四，之前也写过前后端全包的项目，但是对后面的工作都没什么帮助，所以觉得对个人发展也不是很好，而且全栈工程师在杭州需求也不多。没办法，公司就是不给配前端，只能一个人整，想想不能影响项目进度啊，最后倒霉还是自己，所以硬着头皮跳下去了...">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://www.panaihua.com/images/jsx-banyi.png">
+<meta property="og:image" content="https://www.panaihua.com/images/state-update.png">
+<meta property="article:published_time" content="2018-09-11T16:00:00.000Z">
+<meta property="article:modified_time" content="2020-11-12T09:28:47.443Z">
+<meta property="article:author" content="谏言">
+<meta property="article:tag" content="react">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.panaihua.com/images/jsx-banyi.png">
+
+<link rel="canonical" href="https://www.panaihua.com/react-base/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>React 入门 （基础概念） | 人淡如菊</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?d95aaa0fb1f08b11ad55f2baeb0f2146";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">人淡如菊</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">饭碗Java，爱好Python</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://www.panaihua.com/react-base/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="谏言">
+      <meta itemprop="description" content="老子来到这个世界就没想着活着回去">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="人淡如菊">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          React 入门 （基础概念）
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-09-12 00:00:00" itemprop="dateCreated datePublished" datetime="2018-09-12T00:00:00+08:00">2018-09-12</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-11-12 17:28:47" itemprop="dateModified" datetime="2020-11-12T17:28:47+08:00">2020-11-12</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><blockquote>
+<p>准备写这篇文章时，才发现一年都没有总结了。之前还想一个月总结一次，对比现在简直太夸张了。其实今年的收获还挺多的，比如将学习的python、react应用到工作中，个人爬虫网站上线。</p>
+</blockquote>
+<p>开始的时候我是很抵触的，因为觉得后端写前端最后肯定会不三不四，之前也写过前后端全包的项目，但是对后面的工作都没什么帮助，所以觉得对个人发展也不是很好，而且全栈工程师在杭州需求也不多。没办法，公司就是不给配前端，只能一个人整，想想不能影响项目进度啊，最后倒霉还是自己，所以硬着头皮跳下去了。</p>
+<p>项目大概做了4个月，对前端其实还是皮毛，但是完成项目需求还是搓搓有余。能撑到现在是因为有个念头：往全栈工程师发展也不一定是件坏事，说不定就有奇迹了呢。</p>
+<h3 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h3><p>React.js 是一个帮助你构建页面 UI 的库。如果你熟悉 MVC 概念的话，那么 React 的组件就相当于 MVC 里面的 View。说白点就是帮助我们将界面分成各个独立的小块，每一个块就是组件，这些组件之间可以组合、嵌套，就成了我们的页面。</p>
+<p>一个组件的显示形态和行为有可能是由某些数据决定的。而数据是可能发生改变的，这时候组件的显示形态就会发生相应的改变。而 React.js 也提供了一种非常高效的方式帮助我们做到了数据和组件显示形态之间的同步。</p>
+<p>React.js 不是一个框架，它只是一个库。它只提供 UI （view）层面的解决方案。在实际的项目当中，它并不能解决我们所有的问题，需要结合其它的库，例如 Redux、React-router 等来协助提供完整的解决方法。</p>
+<h3 id="JSX"><a href="#JSX" class="headerlink" title="JSX"></a>JSX</h3><p>React的核心机制就是实现了一个虚拟DOM，利用虚拟DOM来减少对实际DOM的操作从而提升性能，组件DOM结构就是映射到这个虚拟的DOM上，React在这个虚拟DOM上实现了一个diff算法，当要更新组件的时候，会通过diff寻找要变更的DOM节点，再把这个修改更新到浏览器实际的DOM节点上，所以实际上不是真的渲染整个DOM树，这个虚拟的DOM是一个纯粹的JS数据结构，所以性能比原生DOM会提高很多；  </p>
+<p>虚拟DOM(virtual-dom)实际上是对实际DOM的一个抽象，是一个js对象。react所有的表层操作实际上是在操作虚拟DOM。经过diff算法计算出虚拟DOM的差异，然后将这些差异进行实际的DOM操作更新页面</p>
+<p>从 JSX 到页面经历的过程：</p>
+<p><img src="/images/jsx-banyi.png"></p>
+<blockquote>
+<ul>
+<li>JSX 是 JavaScript 语言的一种语法扩展，长得像 HTML，但并不是 HTML。</li>
+</ul>
+</blockquote>
+<ul>
+<li>React.js 可以用 JSX 来描述你的组件长什么样的。</li>
+<li>JSX 在编译的时候会变成相应的 JavaScript 对象描述。</li>
+<li>react-dom 负责把这个用来描述 UI 信息的 JavaScript 对象变成 DOM 元素，并且渲染到页面上。</li>
+</ul>
+<h3 id="组件化"><a href="#组件化" class="headerlink" title="组件化"></a>组件化</h3><p>虚拟DOM(virtual-dom)不仅带来了简单的UI开发逻辑，同时也带来了组件化开发的思想，所谓组件，即封装起来的具有独立功能的UI部件。React推荐以组件的方式去重新思考UI构成，将UI上每一个功能相对独立的模块定义成组件，然后将小的组件通过组合或者嵌套的方式构成大的组件，最终完成整体UI的构建。</p>
+<p>可以按照下面的规则进行划分组件：</p>
+<ul>
+<li><p>容器组件：容器型组件是一个页面容器，用来放置当前页面的所有展示型组件和业务组件组合成一个页面，通过数据的驱动进行控制展示组件和业务组件。</p>
+</li>
+<li><p>展示组件：展示型组件是具体到某一个小的组件模块，比如一个按钮，一个卡片，一个进度条等，我们在用react做组件化开发的时候，先定义好一个个小的展示型组件，然后把这些组件都导入容器型组件，最终组合成一个完整的页面。</p>
+</li>
+<li><p>业务组件：页面中某个业务模块的拆分，涉及到数据交互，有自己独立的业务逻辑</p>
+</li>
+</ul>
+<p>React 认为一个组件应该具有如下特征:</p>
+<blockquote>
+<ul>
+<li>可组合（Composeable）：一个组件易于和其它组件一起使用，或者嵌套在另一个组件内部。如果一个组件内部创建了另一个组件，那么说父组件拥有（own）它创建的子组件，通过这个特性，一个复杂的UI可以拆分成多个简单的UI组件。 </li>
+</ul>
+</blockquote>
+<ul>
+<li>可重用（Reusable）：每个组件都是具有独立功能的，它可以被使用在多个UI场景。</li>
+<li>可维护（Maintainable）：每个小的组件仅仅包含自身的逻辑，更容易被理解和维护。</li>
+</ul>
+<h3 id="组件种类"><a href="#组件种类" class="headerlink" title="组件种类"></a>组件种类</h3><p>**function-based(函数组件)**：函数组件也称为无状态组件，使用纯函数创建，创建后不会产生组件实例，也就是说无法使用ref获取，主要用于展示组件的开发，性能高，没有生命周期，没有state，但是可以接收props，相当于一个只有render生命周期的组件</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">Component</span> (<span class="params">props</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="xml"><span class="tag">&lt;<span class="name">div</span>&gt;</span>&#123;props.children&#125;<span class="tag">&lt;/<span class="name">div</span>&gt;</span></span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//使用</span></span><br><span class="line">&lt;Component&gt;组件&lt;/Component&gt;</span><br></pre></td></tr></table></figure>
+<p>**class-based(类组件)**：使用es6 class的方式创建，通过继承React.component实现，可以有自己独立的生命周期，state状态，必须有render生命周期，state定义在constructor构造函数中,所用的容器组件都是通过class创建</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Component</span> <span class="keyword">extends</span> <span class="title">React</span>.<span class="title">component</span> </span>&#123;</span><br><span class="line">   <span class="title">constructor</span> (<span class="params">props</span>) &#123;</span><br><span class="line">     <span class="built_in">super</span>(props)</span><br><span class="line">     <span class="built_in">this</span>.state = &#123;</span><br><span class="line">         age: <span class="number">100</span></span><br><span class="line">     &#125;</span><br><span class="line">   &#125;</span><br><span class="line">   render () &#123;</span><br><span class="line">       <span class="keyword">const</span> &#123;age&#125; = <span class="built_in">this</span>.state</span><br><span class="line">       <span class="keyword">return</span> <span class="xml"><span class="tag">&lt;<span class="name">div</span>&gt;</span>&#123;age&#125;<span class="tag">&lt;/<span class="name">div</span>&gt;</span></span></span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//使用</span></span><br><span class="line">&lt;Component /&gt;</span><br></pre></td></tr></table></figure>
+
+<p><strong>createClass组件</strong>：不常用</p>
+<blockquote>
+<p>在react中最小的单位是元素，元素分为dom元素，组件元素，区分方法是dom元素小写，组件元素首字母大写</p>
+</blockquote>
+<h3 id="组件状态"><a href="#组件状态" class="headerlink" title="组件状态"></a>组件状态</h3><p>每个组件都有一个状态，下面几点仅适用于class-based组件。<br>一个组件的显示形态是可以由它数据状态和配置参数决定的。在react中组件的状态使用state定义，使用setState修改，使用this.state读取。</p>
+<p><strong><em>setState</em></strong></p>
+<p><code>setState</code> 方法由父类 Component 所提供。当我们调用这个函数的时候，React.js 会更新组件的状态 state ，并且重新调用 render 方法，然后再把 render 方法所渲染的最新的内容显示到页面上。</p>
+<p><code>setState</code>是“异步”的，调用<code>setState</code>只会提交一次state修改到队列中，不会直接修改<code>this.state</code>。等到满足一定条件时，react会合并队列中的所有修改，触发一次update流程，更新<code>this.state</code>。因此setState机制减少了update流程的触发次数，从而提高了性能。</p>
+<p><code>setState</code> 的更新是一个浅合并（Shallow Merge）的过程</p>
+<p><em>特殊情况：</em></p>
+<blockquote>
+<p>在实际开发中，setState的表现有时会不同于理想情况。主要是以下两种:  </p>
+</blockquote>
+<ol>
+<li>在mount流程中调用setState。  </li>
+<li>在setTimeout/Promise回调中调用setState。<br>在第一种情况下，不会进入update流程，队列在mount时合并修改并render。<br>在第二种情况下，setState将不会进行队列的批更新，而是直接触发一次update流程。这是由于setState的两种更新机制导致的，只有在批量更新模式中，才会是“异步”的。</li>
+</ol>
+<p><strong><em>State 与 Props 区别</em></strong></p>
+<p><code>state</code> 的主要作用是用于组件保存、控制、修改自己的可变状态。state 在组件内部初始化，可以被组件自身修改，而外部不能访问也不能修改。你可以认为 state 是一个局部的、只能被组件自身控制的数据源。state 中状态可以通过 this.setState 方法进行更新，setState 会导致组件的重新渲染。</p>
+<p><code>props</code> 的主要作用是让使用该组件的父组件可以传入参数来配置该组件。它是外部传进来的配置参数，组件内部无法控制也无法修改。除非外部组件主动传入新的 props，否则组件的 props 永远保持不变。</p>
+<blockquote>
+<p>state 是让组件控制自己的状态，props 是让外部对组件自己进行配置</p>
+</blockquote>
+<h3 id="组件的生命周期"><a href="#组件的生命周期" class="headerlink" title="组件的生命周期"></a>组件的生命周期</h3><p>对于 React 组件来说，生命周期主要包含三个阶段：创建(挂载)过程、销毁(卸载)过程和存在期。</p>
+<p>React.js 将组件渲染，并且构造 DOM 元素然后塞入页面的过程称为组件的挂载。过程如下：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">-&gt; <span class="title">constructor</span>(<span class="params"></span>)</span><br><span class="line">-&gt; <span class="title">componentWillMount</span>(<span class="params"></span>)</span><br><span class="line">-&gt; <span class="title">render</span>(<span class="params"></span>)</span><br><span class="line">// 然后构造 <span class="title">DOM</span> 元素插入页面</span><br><span class="line">-&gt; <span class="title">componentDidMount</span>(<span class="params"></span>)</span><br></pre></td></tr></table></figure>
+<p><code>componentWillMount</code> 和 <code>componentDidMount</code> 都是可以像 render 方法一样自定义在组件的内部。挂载的时候，React.js 会在组件的 render 之前调用 <code>componentWillMount</code>，在 DOM 元素塞入页面以后调用 <code>componentDidMount</code>。</p>
+<p>一个组件可以插入页面，当然也可以从页面中删除</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">-&gt; <span class="title">constructor</span>(<span class="params"></span>)</span><br><span class="line">-&gt; <span class="title">componentWillMount</span>(<span class="params"></span>)</span><br><span class="line">-&gt; <span class="title">render</span>(<span class="params"></span>)</span><br><span class="line">// 然后构造 <span class="title">DOM</span> 元素插入页面</span><br><span class="line">-&gt; <span class="title">componentDidMount</span>(<span class="params"></span>)</span><br><span class="line">// ...</span><br><span class="line">// 即将从页面中删除</span><br><span class="line">-&gt; <span class="title">componentWillUnmount</span>(<span class="params"></span>)</span><br><span class="line">// 从页面中删除</span><br></pre></td></tr></table></figure>
+
+<p>setState更新机制大致流程：</p>
+<p><img src="/images/state-update.png"></p>
+<blockquote>
+<ul>
+<li>当一个组件的state或者其父组件传递的props发生改变的时候组件就会重新渲染.</li>
+</ul>
+</blockquote>
+<ul>
+<li>如果是后者即props发生改变时 React 会调用另外一个周期函数<code>componentWillReceiveProps</code></li>
+<li>如果两者都发生改变，React会做一个重要决策，该组件是否需要在浏览器里被更新？这也是为什么会调用另外一个周期函数<code>shouldComponentUpdate</code>的原因. 这个方法实际上也是在问一个问题，所以如果你想自定义或者优化你的渲染过程，你就需要通过返回一个true或者false来回答这个问题。</li>
+<li>如果没有手动指定<code>shouldComponentUpdate</code>, React 会默认作出聪明的决策，多数情况下也是足够良好的.</li>
+<li>首先, 这时候React会调用<code>componentWillUpdate</code>方法. 然后计算新的渲染产出把它和上一次的渲染产出进行比较.</li>
+<li>如果没什么改变，那么就什么也不做.</li>
+<li>如果有改变则把差异反应到浏览器上.</li>
+<li>无论什么情况，尽管更新会发生在任何地方（甚至计算出来的产出是相同的）,React 最终都会调用另一个周期方法<code>componentDidUpdate</code>.</li>
+</ul>
+<p>可以将<code>React</code>视为我们聘请的与浏览器通信的代理。我们不是去手动的用DOM API来操作DOM，而是更组件状态的属性值，然后让<code>React</code>代表我们去和浏览器沟通. 我相信着就是react为什么这么受欢迎的原因. 我们讨厌和浏览器先生（还说着各种带有口音的DOM方言）打交道，React志愿为我们做这些事情，还是免费的～</p>
+<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><ul>
+<li>React速度很快</li>
+</ul>
+<p>与其它框架相比，React采取了一种特立独行的操作DOM的方式。<br>它并不直接对DOM进行操作。<br>它引入了一个叫做虚拟DOM的概念，安插在JavaScript逻辑和实际的DOM之间。<br>这一概念提高了Web性能。在UI渲染过程中，React通过在虚拟DOM中的微操作来实对现实际DOM的局部更新。</p>
+<ul>
+<li>跨浏览器兼容</li>
+</ul>
+<p>虚拟DOM帮助我们解决了跨浏览器问题，它为我们提供了标准化的API，甚至在IE8中都是没问题的。</p>
+<ul>
+<li>模块化</li>
+</ul>
+<p>为你程序编写独立的模块化UI组件，这样当某个或某些组件出现问题是，可以方便地进行隔离。<br>每个组件都可以进行独立的开发和测试，并且它们可以引入其它组件。这等同于提高了代码的可维护性。</p>
+<ul>
+<li>React与其它框架/库兼容性好</li>
+</ul>
+<p>比如使用RequireJS来加载和打包，而Browserify和Webpack适用于构建大型应用。它们使得那些艰难的任务不再让人望而生畏。</p>
+<p><strong>缺点：</strong></p>
+<p>React本身只是一个V而已，所以如果是大型项目想要一套完整的框架的话，还需要引入Flux和routing相关的东西</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/react/" rel="tag"># react</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/elastic-job/" rel="prev" title="elastic-job 在广告系统中的实践总结">
+      <i class="fa fa-chevron-left"></i> elastic-job 在广告系统中的实践总结
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/mysql-binlog/" rel="next" title="记一次 Binlog 的应用">
+      记一次 Binlog 的应用 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">2.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#JSX"><span class="nav-number">3.</span> <span class="nav-text">JSX</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%84%E4%BB%B6%E5%8C%96"><span class="nav-number">4.</span> <span class="nav-text">组件化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%84%E4%BB%B6%E7%A7%8D%E7%B1%BB"><span class="nav-number">5.</span> <span class="nav-text">组件种类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%84%E4%BB%B6%E7%8A%B6%E6%80%81"><span class="nav-number">6.</span> <span class="nav-text">组件状态</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%84%E4%BB%B6%E7%9A%84%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F"><span class="nav-number">7.</span> <span class="nav-text">组件的生命周期</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B0%8F%E7%BB%93"><span class="nav-number">8.</span> <span class="nav-text">小结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">谏言</p>
+  <div class="site-description" itemprop="description">老子来到这个世界就没想着活着回去</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">20</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">19</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/kongjun01" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;kongjun01" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">谏言</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

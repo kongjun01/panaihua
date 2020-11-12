@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="8aIzxRAbgeg8v5Rj5ESBsJGewJL2ZYEC_NtvWgtILCE">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.panaihua.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="MySQL 查询优化器有几个目标,但是其中最主要的目标是尽可能地使用索引,并且使用最严格的索引来消除尽可能多的数据行。最终目标是提交 SELECT 语句查找数据行,而不是排除数据行。优化器试图排除数据行的原因在于它排除数据行的速度越快,那么找到与条件匹配的数据行也就越快。如果能够首先进行最严格的测试,查询就可以执行地更快.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySQL Explain总结">
+<meta property="og:url" content="https://www.panaihua.com/mysql-explain/index.html">
+<meta property="og:site_name" content="人淡如菊">
+<meta property="og:description" content="MySQL 查询优化器有几个目标,但是其中最主要的目标是尽可能地使用索引,并且使用最严格的索引来消除尽可能多的数据行。最终目标是提交 SELECT 语句查找数据行,而不是排除数据行。优化器试图排除数据行的原因在于它排除数据行的速度越快,那么找到与条件匹配的数据行也就越快。如果能够首先进行最严格的测试,查询就可以执行地更快.">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2016-05-09T16:00:00.000Z">
+<meta property="article:modified_time" content="2020-11-12T08:28:18.323Z">
+<meta property="article:author" content="谏言">
+<meta property="article:tag" content="mysql">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://www.panaihua.com/mysql-explain/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>MySQL Explain总结 | 人淡如菊</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?d95aaa0fb1f08b11ad55f2baeb0f2146";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">人淡如菊</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">饭碗Java，爱好Python</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://www.panaihua.com/mysql-explain/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="谏言">
+      <meta itemprop="description" content="老子来到这个世界就没想着活着回去">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="人淡如菊">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          MySQL Explain总结
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2016-05-10 00:00:00" itemprop="dateCreated datePublished" datetime="2016-05-10T00:00:00+08:00">2016-05-10</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-11-12 16:28:18" itemprop="dateModified" datetime="2020-11-12T16:28:18+08:00">2020-11-12</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="MySQL-查询优化器是如何工作的"><a href="#MySQL-查询优化器是如何工作的" class="headerlink" title="MySQL 查询优化器是如何工作的"></a>MySQL 查询优化器是如何工作的</h2><p>MySQL 查询优化器有几个目标,但是其中最主要的目标是尽可能地使用索引,并且使用最严格的索引来消除尽可能多的数据行。最终目标是提交 SELECT 语句查找数据行,而不是排除数据行。优化器试图排除数据行的原因在于它排除数据行的速度越快,那么找到与条件匹配的数据行也就越快。如果能够首先进行最严格的测试,查询就可以执行地更快。</p>
+<h2 id="Explain-的每个输出列的含义"><a href="#Explain-的每个输出列的含义" class="headerlink" title="Explain 的每个输出列的含义"></a>Explain 的每个输出列的含义</h2><h4 id="id"><a href="#id" class="headerlink" title="id"></a>id</h4><p>MySQL Query Optimizer 选定的执行计划中查询的序列号。表示查询中执行 select 子句或操作表的顺序,id 值越大优先级越高,越先被执行。id 相同,执行顺序由上至下。</p>
+<h4 id="select-type"><a href="#select-type" class="headerlink" title="select_type"></a>select_type</h4><p>查询类型<br><em>SIMPLE</em> : 简单的 select 查询,不使用 union 及子查询<br><em>PRIMARY</em> : 最外层的 select 查询<br><em>UNION</em> : UNION 中的第二个或随后的 select 查询,不 依赖于外部查询的结果集<br><em>DEPENDENT UNION</em> : UNION 中的第二个或随后的 select 查询,依 赖于外部查询的结果集<br><em>SUBQUERY</em> : 子查询中的第一个 select 查询,不依赖于外 部查询的结果集<br><em>DEPENDENT SUBQUERY</em> : 子查询中的第一个 select 查询,依赖于外部 查询的结果集<br><em>DERIVED</em> : 用于 from 子句里有子查询的情况。 MySQL 会 递归执行这些子查询, 把结果放在临时表里。<br><em>UNCACHEABLE SUBQUERY</em> : 结果集不能被缓存的子查询,必须重新为外 层查询的每一行进行评估。<br><em>UNCACHEABLE UNION</em> : UNION 中的第二个或随后的 select 查询,属 于不可缓存的子查询  </p>
+<h4 id="table"><a href="#table" class="headerlink" title="table"></a>table</h4><p>顾名思义，就是查询的表</p>
+<h4 id="type"><a href="#type" class="headerlink" title="type"></a>type</h4><p>输出行所引用的表（重要的项,显示连接使用的类型,按最优到最差的类型排序）<br><em>system</em> ： 表仅有一行(=系统表)。这是 const 连接类型的一个特例。<br><em>const</em> ： 用于用常数值比较 PRIMARY KEY 时。当 查询的表仅有一行时,使用 System。<br><em>eq_ref</em> ： 用于用常数值比较 PRIMARY KEY 时。当 查询的表仅有一行时,使用 System。<br><em>ref</em> ： 连接不能基于关键字选择单个行,可能查找到多个符合条件的行。叫做 ref 是因为索引要 跟某个参考值相比较。这个参考值或者是一 个常数,或者是来自一个表里的多表查询的 结果值。<br><em>ref_or_null</em> ： 如同 ref, 但是 MySQL 必须在初次查找的结果 里找出 null 条目,然后进行二次查找。<br><em>index_merge</em> ： 说明索引合并优化被使用了。<br><em>unique_subquery</em> ： 在某些 IN 查询中使用此种类型,而不是常规的。<br><em>index_subquery</em> ： 在某些IN查询中使用此种类型,与unique_subquery类似,但是查询的是非唯一 性索<br><em>range</em> ： 只检索给定范围的行,使用一个索引来选择 行。key 列显示使用了哪个索引。当使用=、 &lt;&gt;、&gt;、&gt;=、&lt;、&lt;=、IS NULL、&lt;=&gt;、BETWEEN 或者 IN 操作符,用常量比较关键字列时,可以使用 range。<br><em>index</em> ： 全表扫描,只是扫描表的时候按照索引次序 进行而不是行。主要优点就是避免了排序, 但是开销仍然非常大。<br><em>all</em> ： 最坏的情况,从头到尾全表扫描。<br>MySQL一次查询只能使用一个索引（多个表查询时就是表的数量），所以MySQL在选择索引的时候会按照上面的顺序使用。<br>比如：（每个字段都有索引）  </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select * from tbl_order where  id &gt;&#x3D; 1000 and name &#x3D; &quot;zhangsan&quot; limit 0,10 </span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>看似会使用主键的索引，其实不然。”=“是”ref“的类型， ”&gt;=“是”range“类型，优先级最低，所以MySQL会使用name的索引。</p>
+</blockquote>
+<h4 id="possible-keys"><a href="#possible-keys" class="headerlink" title="possible_keys"></a>possible_keys</h4><p>指出 MySQL 能在该表中使用哪些索引有助于 查询。如果为空,说明没有可用的索引。</p>
+<h4 id="key"><a href="#key" class="headerlink" title="key"></a>key</h4><p>MySQL 实际从 possible_key 选择使用的索引。 如果为 NULL,则没有使用索引。很少的情况 下,MYSQL 会选择优化不足的索引。这种情况下,可以在 SELECT 语句中使用 USE INDEX (indexname)来强制使用一个索引或者用 IGNORE INDEX(indexname)来强制 MYSQL 忽略索引</p>
+<h4 id="key-len"><a href="#key-len" class="headerlink" title="key_len"></a>key_len</h4><p>使用的索引的长度。在不损失精确性的情况 下,长度越短越好。</p>
+<h4 id="ref"><a href="#ref" class="headerlink" title="ref"></a>ref</h4><p>显示索引的哪一列被使用了</p>
+<h4 id="rows"><a href="#rows" class="headerlink" title="rows"></a>rows</h4><p>MySQL 认为必须检查的用来返回请求数据的行数</p>
+<h4 id="extra"><a href="#extra" class="headerlink" title="extra"></a>extra</h4><p>出现以下两项意味着 MYSQL 根本不能使用索引,效率会受到重大影响。应尽可能对此进行优化。<br><em>Using filesort</em> : 表示 MySQL 会对结果使用一个外部索引排序,而不是从表里按索引次序读到相关内容。可能在内存或者磁盘上进行排序。MySQL 中无法利用索引完成的排序操作称为“文件排序”<br><em>Using temporary</em> : 表示 MySQL 在对查询结果排序时使用临时表。常见于排序 order by 和分组查询 group by。</p>
+<p>MySql 中的 explain 语法可以帮助我们改写查询,优化表的结构和索引的设置,从而最大地提高查询效率。当然,在大规模数据量时,索引的建立和维护的代价也是很高的,往往需要较长的时间和较大的空间,如果在不同的列组合上建立索引,空间的开销会更大。因此索引最好设置在需要经常查询的字段中。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/mysql/" rel="tag"># mysql</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/tomcat-allocate-memory/" rel="prev" title="Tomcat Cannot Allocate Memory">
+      <i class="fa fa-chevron-left"></i> Tomcat Cannot Allocate Memory
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/redis-lock/" rel="next" title="用Redis实现分布式锁">
+      用Redis实现分布式锁 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#MySQL-%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96%E5%99%A8%E6%98%AF%E5%A6%82%E4%BD%95%E5%B7%A5%E4%BD%9C%E7%9A%84"><span class="nav-number">1.</span> <span class="nav-text">MySQL 查询优化器是如何工作的</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Explain-%E7%9A%84%E6%AF%8F%E4%B8%AA%E8%BE%93%E5%87%BA%E5%88%97%E7%9A%84%E5%90%AB%E4%B9%89"><span class="nav-number">2.</span> <span class="nav-text">Explain 的每个输出列的含义</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#id"><span class="nav-number">2.0.1.</span> <span class="nav-text">id</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#select-type"><span class="nav-number">2.0.2.</span> <span class="nav-text">select_type</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#table"><span class="nav-number">2.0.3.</span> <span class="nav-text">table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#type"><span class="nav-number">2.0.4.</span> <span class="nav-text">type</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#possible-keys"><span class="nav-number">2.0.5.</span> <span class="nav-text">possible_keys</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#key"><span class="nav-number">2.0.6.</span> <span class="nav-text">key</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#key-len"><span class="nav-number">2.0.7.</span> <span class="nav-text">key_len</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#ref"><span class="nav-number">2.0.8.</span> <span class="nav-text">ref</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#rows"><span class="nav-number">2.0.9.</span> <span class="nav-text">rows</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#extra"><span class="nav-number">2.0.10.</span> <span class="nav-text">extra</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">谏言</p>
+  <div class="site-description" itemprop="description">老子来到这个世界就没想着活着回去</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">20</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">19</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/kongjun01" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;kongjun01" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">谏言</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="8aIzxRAbgeg8v5Rj5ESBsJGewJL2ZYEC_NtvWgtILCE">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.panaihua.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="一般的限流常常需要指定一个固定值(qps)作为限流开关的阈值，这个值一是靠经验判断，二是靠通过大量的测试数据得出。但这个阈值，在流量激增、系统自动伸缩或者某某commit了一段有毒代码后就有可能变得不那么合适了。并且一般业务方也不太能够正确评估自己的容量，去设置一个合适的限流阈值。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="自适应限流 netflix-concurrency-limits">
+<meta property="og:url" content="https://www.panaihua.com/concurrency-limits/index.html">
+<meta property="og:site_name" content="人淡如菊">
+<meta property="og:description" content="一般的限流常常需要指定一个固定值(qps)作为限流开关的阈值，这个值一是靠经验判断，二是靠通过大量的测试数据得出。但这个阈值，在流量激增、系统自动伸缩或者某某commit了一段有毒代码后就有可能变得不那么合适了。并且一般业务方也不太能够正确评估自己的容量，去设置一个合适的限流阈值。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://www.panaihua.com/images/20191104083803.jpg">
+<meta property="og:image" content="https://www.panaihua.com/images/2019110483804.jpg">
+<meta property="article:published_time" content="2020-05-11T16:00:00.000Z">
+<meta property="article:modified_time" content="2020-11-12T10:02:11.834Z">
+<meta property="article:author" content="谏言">
+<meta property="article:tag" content="java">
+<meta property="article:tag" content="AQS">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.panaihua.com/images/20191104083803.jpg">
+
+<link rel="canonical" href="https://www.panaihua.com/concurrency-limits/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>自适应限流 netflix-concurrency-limits | 人淡如菊</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?d95aaa0fb1f08b11ad55f2baeb0f2146";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">人淡如菊</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">饭碗Java，爱好Python</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://www.panaihua.com/concurrency-limits/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="谏言">
+      <meta itemprop="description" content="老子来到这个世界就没想着活着回去">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="人淡如菊">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          自适应限流 netflix-concurrency-limits
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-05-12 00:00:00" itemprop="dateCreated datePublished" datetime="2020-05-12T00:00:00+08:00">2020-05-12</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-11-12 18:02:11" itemprop="dateModified" datetime="2020-11-12T18:02:11+08:00">2020-11-12</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>作为应对高并发的手段之一，限流并不是一个新鲜的话题了。从Guava的Ratelimiter到Hystrix，以及Sentinel都可作为限流的工具。</p>
+<h3 id="自适应限流"><a href="#自适应限流" class="headerlink" title="自适应限流"></a>自适应限流</h3><p>一般的限流常常需要指定一个固定值(qps)作为限流开关的阈值，这个值一是靠经验判断，二是靠通过大量的测试数据得出。但这个阈值，在流量激增、系统自动伸缩或者某某commit了一段有毒代码后就有可能变得不那么合适了。并且一般业务方也不太能够正确评估自己的容量，去设置一个合适的限流阈值。</p>
+<p>而此时自适应限流就是解决这样的问题的，限流阈值不需要手动指定，也不需要去预估系统的容量，并且阈值能够随着系统相关指标变化而变化。</p>
+<p>自适应限流算法借鉴了TCP拥塞算法，根据各种指标预估限流的阈值，并且不断调整。大致获得的效果如下:</p>
+<p><img src="/images/20191104083803.jpg"></p>
+<p>从图上可以看到，首先以一个降低的初始并发值发送请求，同时通过增大限流窗口来探测系统更高的并发性。而一旦延迟增加到一定程度了，又会退回到较小的限流窗口。循环往复持续探测并发极限，从而产生类似锯齿状的时间关系函数。</p>
+<h3 id="TCP-Vegas"><a href="#TCP-Vegas" class="headerlink" title="TCP Vegas"></a>TCP Vegas</h3><p>vegas是一种主动调整cwnd的拥塞控制算法，主要是设置两个阈值alpha 和 beta，然后通过计算目标速率和实际速率的差diff，再比较差diff与alpha和beta的关系，对cwnd进行调节。伪代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">diff &#x3D; cwnd*(1-baseRTT&#x2F;RTT)</span><br><span class="line">if (diff &lt; alpha)</span><br><span class="line">set: cwnd &#x3D; cwnd + 1 </span><br><span class="line">else if (diff &gt;&#x3D; beta)</span><br><span class="line">set: cwnd &#x3D; cwnd - 1</span><br><span class="line">else</span><br><span class="line">set: cwnd &#x3D; cwnd</span><br></pre></td></tr></table></figure>
+
+<p>其中baseRTT指的是测量的最小往返时间，RTT指的是当前测量的往返时间，cwnd指的是当前的TCP窗口大小。通常在tcp中alpha会被设置成2-3，beta会被设置成4-6。这样子，cwnd就保持在了一个平衡的状态。</p>
+<h5 id="netflix-concuurency-limits"><a href="#netflix-concuurency-limits" class="headerlink" title="netflix-concuurency-limits"></a>netflix-concuurency-limits</h5><p>concuurency-limits是netflix推出的自适应限流组件，借鉴了TCP相关拥塞控制算法，主要是根据请求延时，及其直接影响到的排队长度来进行限流窗口的动态调整。</p>
+<h5 id="alpha-beta-amp-threshold"><a href="#alpha-beta-amp-threshold" class="headerlink" title="alpha , beta &amp; threshold"></a>alpha , beta &amp; threshold</h5><p>vegas算法实现在了VegasLimit类中。先看一下初始化相关代码:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> initialLimit = <span class="number">20</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> maxConcurrency = <span class="number">1000</span>;</span><br><span class="line">    <span class="keyword">private</span> MetricRegistry registry = EmptyMetricRegistry.INSTANCE;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">double</span> smoothing = <span class="number">1.0</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">private</span> Function&lt;Integer, Integer&gt; alphaFunc = (limit) -&gt; <span class="number">3</span> * LOG10.apply(limit.intValue());</span><br><span class="line">    <span class="keyword">private</span> Function&lt;Integer, Integer&gt; betaFunc = (limit) -&gt; <span class="number">6</span> * LOG10.apply(limit.intValue());</span><br><span class="line">    <span class="keyword">private</span> Function&lt;Integer, Integer&gt; thresholdFunc = (limit) -&gt; LOG10.apply(limit.intValue());</span><br><span class="line">    <span class="keyword">private</span> Function&lt;Double, Double&gt; increaseFunc = (limit) -&gt; limit + LOG10.apply(limit.intValue());</span><br><span class="line">    <span class="keyword">private</span> Function&lt;Double, Double&gt; decreaseFunc = (limit) -&gt; limit - LOG10.apply(limit.intValue());</span><br></pre></td></tr></table></figure>
+
+<p>这里首先定义了一个初始化值initialLimit为20，以及极大值maxConcurrency1000。其次是三个<br>阈值函数alphaFunc，betaFunc以及thresholdFunc。最后是两个增减函数increaseFunc和decreaseFunc。<br>函数都是基于当前的并发值limit做运算的。</p>
+<ul>
+<li>alphaFunc可类比vegas算法中的alpha，此处的实现是3*log limit。limit值从初始20增加到极大1000时候，相应的alpha从3.9增加到了9。</li>
+<li>betaFunc则可类比为vegas算法中的beta，此处的实现是6*log limit。limit值从初始20增加到极大1000时候，相应的alpha从7.8增加到了18。</li>
+<li>thresholdFunc算是新增的一个函数，表示一个较为初始的阈值，小于这个值的时候limit会采取激进一些的增量算法。这里的实现是1倍的log limit。mit值从初始20增加到极大1000时候，相应的alpha从1.3增加到了3。</li>
+</ul>
+<p>这三个函数值可以认为确定了动态调整函数的四个区间范围。当变量queueSize = limit × (1 − RTTnoLoad/RTTactual)落到这四个区间的时候应用不同的调整函数。</p>
+<h5 id="变量queueSize"><a href="#变量queueSize" class="headerlink" title="变量queueSize"></a>变量queueSize</h5><p>其中变量为queueSize，计算方法即为limit × (1 − RTTnoLoad/RTTactual)，为什么这么计算其实稍加领悟一下即可。</p>
+<p><img src="/images/2019110483804.jpg"></p>
+<p>我们把系统处理请求的过程想象为一个水管，到来的请求是往这个水管灌水，当系统处理顺畅的时候，请求不需要排队，直接从水管中穿过，这个请求的RT是最短的，即RTTnoLoad；反之，当请求堆积的时候，那么处理请求的时间则会变为：排队时间+最短处理时间，即RTTactual = inQueueTime + RTTnoLoad。而显然排队的队列长度为<br>总排队时间/每个请求的处理时间及queueSize = (limit * inQueueTime) / (inQueueTime + RTTnoLoad) = limit × (1 − RTTnoLoad/RTTactual)。<br>再举个栗子，因为假设当前延时即为最佳延时，那么自然是不用排队的，即queueSize=0。而假设当前延时为最佳延时的一倍的时候，可以认为处理能力折半，100个流量进来会有一半即50个请求在排队，及queueSize= 100 * (1 − 1/2)=50。</p>
+<h5 id="动态调整函数"><a href="#动态调整函数" class="headerlink" title="动态调整函数"></a>动态调整函数</h5><p>调整函数中最重要的即增函数与减函数。从初始化的代码中得知，增函数increaseFunc实现为limit+log limit，减函数decreaseFunc实现为limit-log limit，相对来说增减都是比较保守的。</p>
+<p>看一下应用动态调整函数的相关代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">updateEstimatedLimit</span><span class="params">(<span class="keyword">long</span> rtt, <span class="keyword">int</span> inflight, <span class="keyword">boolean</span> didDrop)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> queueSize = (<span class="keyword">int</span>) Math.ceil(estimatedLimit * (<span class="number">1</span> - (<span class="keyword">double</span>)rtt_noload / rtt));</span><br><span class="line"></span><br><span class="line">    <span class="keyword">double</span> newLimit;</span><br><span class="line">    <span class="comment">// Treat any drop (i.e timeout) as needing to reduce the limit</span></span><br><span class="line">    <span class="comment">// 发现错误直接应用减函数decreaseFunc</span></span><br><span class="line">    <span class="keyword">if</span> (didDrop) &#123;</span><br><span class="line">        newLimit = decreaseFunc.apply(estimatedLimit);</span><br><span class="line">    <span class="comment">// Prevent upward drift if not close to the limit</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (inflight * <span class="number">2</span> &lt; estimatedLimit) &#123;</span><br><span class="line">        <span class="keyword">return</span> (<span class="keyword">int</span>)estimatedLimit;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">int</span> alpha = alphaFunc.apply((<span class="keyword">int</span>)estimatedLimit);</span><br><span class="line">        <span class="keyword">int</span> beta = betaFunc.apply((<span class="keyword">int</span>)estimatedLimit);</span><br><span class="line">        <span class="keyword">int</span> threshold = <span class="keyword">this</span>.thresholdFunc.apply((<span class="keyword">int</span>)estimatedLimit);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Aggressive increase when no queuing</span></span><br><span class="line">        <span class="keyword">if</span> (queueSize &lt;= threshold) &#123;</span><br><span class="line">            newLimit = estimatedLimit + beta;</span><br><span class="line">        <span class="comment">// Increase the limit if queue is still manageable</span></span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (queueSize &lt; alpha) &#123;</span><br><span class="line">            newLimit = increaseFunc.apply(estimatedLimit);</span><br><span class="line">        <span class="comment">// Detecting latency so decrease</span></span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (queueSize &gt; beta) &#123;</span><br><span class="line">            newLimit = decreaseFunc.apply(estimatedLimit);</span><br><span class="line">        <span class="comment">// We&#x27;re within he sweet spot so nothing to do</span></span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> (<span class="keyword">int</span>)estimatedLimit;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    newLimit = Math.max(<span class="number">1</span>, Math.min(maxLimit, newLimit));</span><br><span class="line">    newLimit = (<span class="number">1</span> - smoothing) * estimatedLimit + smoothing * newLimit;</span><br><span class="line">    <span class="keyword">if</span> ((<span class="keyword">int</span>)newLimit != (<span class="keyword">int</span>)estimatedLimit &amp;&amp; LOG.isDebugEnabled()) &#123;</span><br><span class="line">        LOG.debug(<span class="string">&quot;New limit=&#123;&#125; minRtt=&#123;&#125; ms winRtt=&#123;&#125; ms queueSize=&#123;&#125;&quot;</span>,</span><br><span class="line">                (<span class="keyword">int</span>)newLimit,</span><br><span class="line">                TimeUnit.NANOSECONDS.toMicros(rtt_noload) / <span class="number">1000.0</span>,</span><br><span class="line">                TimeUnit.NANOSECONDS.toMicros(rtt) / <span class="number">1000.0</span>,</span><br><span class="line">                queueSize);</span><br><span class="line">    &#125;</span><br><span class="line">    estimatedLimit = newLimit;</span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">int</span>)estimatedLimit;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>动态调整函数规则如下：</p>
+<ul>
+<li>当变量queueSize &lt; threshold时，选取较激进的增量函数，newLimit = limit+beta</li>
+<li>当变量queueSize &lt; alpha时，需要增大限流窗口，选择增函数increaseFunc，即newLimit = limit + log limit</li>
+<li>当变量queueSize处于alpha，beta之间时候，limit不变</li>
+<li>当变量queueSize大于beta时候，需要收拢限流窗口，选择减函数decreaseFunc，即newLimit = limit - log limit</li>
+</ul>
+<h5 id="平滑递减-smoothingDecrease"><a href="#平滑递减-smoothingDecrease" class="headerlink" title="平滑递减 smoothingDecrease"></a>平滑递减 smoothingDecrease</h5><p>注意到可以设置变量smoothing，这里初始值为1，表示平滑递减不起作用。如果有需要的话可以按需设置，比如设置smoothing为0.5时候，那么效果就是采用减函数decreaseFunc时候效果减半，实现方式为newLimitAfterSmoothing = 0.5 newLimit + 0.5 limit。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/java/" rel="tag"># java</a>
+              <a href="/tags/AQS/" rel="tag"># AQS</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/aqs-clh/" rel="prev" title="J.U.C之AQS原理-CLH队列">
+      <i class="fa fa-chevron-left"></i> J.U.C之AQS原理-CLH队列
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81"><span class="nav-number">1.</span> <span class="nav-text">自适应限流</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TCP-Vegas"><span class="nav-number">2.</span> <span class="nav-text">TCP Vegas</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#netflix-concuurency-limits"><span class="nav-number">2.0.1.</span> <span class="nav-text">netflix-concuurency-limits</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#alpha-beta-amp-threshold"><span class="nav-number">2.0.2.</span> <span class="nav-text">alpha , beta &amp; threshold</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%8F%98%E9%87%8FqueueSize"><span class="nav-number">2.0.3.</span> <span class="nav-text">变量queueSize</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%8A%A8%E6%80%81%E8%B0%83%E6%95%B4%E5%87%BD%E6%95%B0"><span class="nav-number">2.0.4.</span> <span class="nav-text">动态调整函数</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%B9%B3%E6%BB%91%E9%80%92%E5%87%8F-smoothingDecrease"><span class="nav-number">2.0.5.</span> <span class="nav-text">平滑递减 smoothingDecrease</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">谏言</p>
+  <div class="site-description" itemprop="description">老子来到这个世界就没想着活着回去</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">20</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">19</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/kongjun01" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;kongjun01" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">谏言</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

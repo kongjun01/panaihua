@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="8aIzxRAbgeg8v5Rj5ESBsJGewJL2ZYEC_NtvWgtILCE">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.panaihua.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="一般来说，系统可使用消息传递代替部分使用作业的场景。两者确有相似之处。可互相替换的场景，如队列表。将待处理的数据放入队列表，然后使用频率极短的定时任务拉取队列表的数据并处理。这种情况使用消息中间件的推送模式可更好的处理实时性数据。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="elastic-job 在广告系统中的实践总结">
+<meta property="og:url" content="https://www.panaihua.com/elastic-job/index.html">
+<meta property="og:site_name" content="人淡如菊">
+<meta property="og:description" content="一般来说，系统可使用消息传递代替部分使用作业的场景。两者确有相似之处。可互相替换的场景，如队列表。将待处理的数据放入队列表，然后使用频率极短的定时任务拉取队列表的数据并处理。这种情况使用消息中间件的推送模式可更好的处理实时性数据。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://www.panaihua.com/images/struct.png">
+<meta property="og:image" content="https://www.panaihua.com/images/start.jpg">
+<meta property="og:image" content="https://www.panaihua.com/images/deffied.jpg">
+<meta property="og:image" content="https://www.panaihua.com/images/console.png">
+<meta property="article:published_time" content="2017-12-25T16:00:00.000Z">
+<meta property="article:modified_time" content="2020-11-12T09:29:40.467Z">
+<meta property="article:author" content="谏言">
+<meta property="article:tag" content="java">
+<meta property="article:tag" content="elastic-job">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.panaihua.com/images/struct.png">
+
+<link rel="canonical" href="https://www.panaihua.com/elastic-job/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>elastic-job 在广告系统中的实践总结 | 人淡如菊</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?d95aaa0fb1f08b11ad55f2baeb0f2146";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">人淡如菊</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">饭碗Java，爱好Python</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://www.panaihua.com/elastic-job/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="谏言">
+      <meta itemprop="description" content="老子来到这个世界就没想着活着回去">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="人淡如菊">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          elastic-job 在广告系统中的实践总结
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2017-12-26 00:00:00" itemprop="dateCreated datePublished" datetime="2017-12-26T00:00:00+08:00">2017-12-26</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-11-12 17:29:40" itemprop="dateModified" datetime="2020-11-12T17:29:40+08:00">2020-11-12</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="为什么要使用elastic-job"><a href="#为什么要使用elastic-job" class="headerlink" title="为什么要使用elastic-job"></a>为什么要使用elastic-job</h3><h5 id="为什么要使用定时任务"><a href="#为什么要使用定时任务" class="headerlink" title="为什么要使用定时任务"></a>为什么要使用定时任务</h5><p>一般来说，系统可使用消息传递代替部分使用作业的场景。两者确有相似之处。可互相替换的场景，如队列表。将待处理的数据放入队列表，然后使用频率极短的定时任务拉取队列表的数据并处理。这种情况使用消息中间件的推送模式可更好的处理实时性数据。而且基于数据库的消息存储吞吐量远远小于基于文件的顺序追加消息存储，但在某些场景下则不能互换：</p>
+<ul>
+<li><p>时间驱动 OR 事件驱动：内部系统一般可以通过事件来驱动，但涉及到外部系统，则只能使用时间驱动。如：抓取外部系统价格。每小时抓取，由于是外部系统，不能像内部系统一样发送事件触发事件。</p>
+</li>
+<li><p>批量处理 OR 逐条处理：批量处理堆积的数据更加高效，在不需要实时性的情况下比消息中间件更有优势。而且有的业务逻辑只能批量处理，如：电商公司与快递公司结算，一个月结算一次，并且根据送货的数量有提成。比如，当月送货超过1000则额外给快递公司多1%的快递费。</p>
+</li>
+<li><p>非实时性 OR 实时性：虽然消息中间件可以做到实时处理数据，但有的情况并不需要。如：VIP用户降级，如果超过1年无购买行为，则自动降级。这类需求没有强烈的时间要求，不需要按照时间精确的降级VIP用户。</p>
+</li>
+<li><p>系统内部 OR 系统解耦：作业一般封装在系统内部，而消息中间件可用于系统间解耦。</p>
+</li>
+</ul>
+<h5 id="为什么要选择elastic-job"><a href="#为什么要选择elastic-job" class="headerlink" title="为什么要选择elastic-job"></a>为什么要选择elastic-job</h5><p>先比较下常见作业系统的差异：</p>
+<ul>
+<li><p>Quartz：Java事实上的定时任务标准。但Quartz关注点在于定时任务而非数据，并无一套根据数据处理而定制化的流程。虽然Quartz可以基于数据库实现作业的高可用，但缺少分布式并行执行作业的功能。</p>
+</li>
+<li><p>TBSchedule：阿里早期开源的分布式任务调度系统。代码略陈旧，使用timer而非线程池执行任务调度。众所周知，timer在处理异常状况时是有缺陷的。而且TBSchedule作业类型较为单一，只能是获取/处理数据一种模式。还有就是文档缺失比较严重。</p>
+</li>
+<li><p>Crontab：Linux系统级的定时任务执行器。缺乏分布式和集中管理功能。</p>
+</li>
+</ul>
+<blockquote>
+<p>之前广告系统使用的是Crontab，虽然也可以很好的支撑我们的需求，但是后来跑任务的这台机器有问题需要下线，然而运维迁移的时候任务没有迁移，导致所有的定时任务在那一晚全部失效。这是为什么我们需要迁移到elastic-job的主要原因</p>
+</blockquote>
+<p>综上所述，当前存在的作业系统缺少分布式、并行调度、弹性扩容缩容、集中管理、定制化流程型任务等功能，所以需要一个新的作业系统完善这些功能。</p>
+<h3 id="elastic-job介绍"><a href="#elastic-job介绍" class="headerlink" title="elastic-job介绍"></a>elastic-job介绍</h3><p>elastic-job主要的设计理念是无中心化的分布式定时调度框架，思路来源于Quartz的基于数据库的高可用方案。但数据库没有分布式协调功能，所以在高可用方案的基础上增加了弹性扩容和数据分片的思路，以便于更大限度的利用分布式服务器的资源。</p>
+<p><img src="/images/struct.png"></p>
+<h5 id="主要功能"><a href="#主要功能" class="headerlink" title="主要功能"></a>主要功能</h5><ul>
+<li>分布式<ul>
+<li>重写Quartz基于数据库的分布式功能，改用Zookeeper实现注册中心</li>
+</ul>
+</li>
+<li>并行调度<ul>
+<li>采用任务分片方式实现。将一个任务拆分为n个独立的任务项，由分布式的服务器并行执行各自分配到的分片项</li>
+</ul>
+</li>
+<li>弹性扩容缩容<ul>
+<li>将任务拆分为n个任务项后，各个服务器分别执行各自分配到的任务项。一旦有新的服务器加入集群，或现有服务器下线，elastic-job将在保留本次任务执行不变的情况下，下次任务开始前触发任务重分片</li>
+</ul>
+</li>
+<li>集中管理<ul>
+<li>采用基于Zookeeper的注册中心，集中管理和协调分布式作业的状态，分配和监听。外部系统可直接根据Zookeeper的数据管理和- 监控elastic-job</li>
+</ul>
+</li>
+<li>定制化流程型任务<ul>
+<li>作业可分为简单和数据流处理两种模式，数据流又分为高吞吐处理模式和顺序性处理模式，其中高吞吐处理模式可以开启足够多的线程快速的处理数据，而顺序性处理模式将每个分片项分配到一个独立线程，用于保证同一分片的顺序性</li>
+</ul>
+</li>
+<li>失效转移<ul>
+<li>弹性扩容缩容在下次作业运行前重分片，但本次作业执行的过程中，下线的服务器所分配的作业将不会重新被分配。失效转移功能可以在本次作业运行中用空闲服务器抓取孤儿作业分片执行。同样失效转移功能也会牺牲部分性能</li>
+</ul>
+</li>
+<li>运行时状态收集<ul>
+<li>监控作业运行时状态，统计最近一段时间处理的数据成功和失败数量，记录作业上次运行开始时间，结束时间和下次运行时间</li>
+</ul>
+</li>
+<li>作业停止，恢复和禁用<ul>
+<li>用于操作作业启停，并可以禁止某作业运行（上线时常用）</li>
+</ul>
+</li>
+<li>Spring命名空间支持<ul>
+<li>elastic-job可以不依赖于spring直接运行，但是也提供了自定义的命名空间方便与spring集成</li>
+</ul>
+</li>
+<li>运维平台<ul>
+<li>提供web控制台用于管理作业和注册中心</li>
+</ul>
+</li>
+<li>稳定性<ul>
+<li>在服务器无波动的情况下，并不会重新分片；即使服务器有波动，下次分片的结果也会根据服务器IP和作业名称哈希值算出稳定的分片顺序，尽量不做大的变动</li>
+</ul>
+</li>
+<li>高性能<ul>
+<li>同一服务器的批量数据处理采用自动切割并多线程并行处理</li>
+</ul>
+</li>
+<li>灵活性<ul>
+<li>所有在功能和性能之间的权衡，都可通过配置开启/关闭。如：elastic-job会将作业运行状态的必要信息更新到注册中心。如果作业执行频度很高，会造成大量Zookeeper写操作，而分布式Zookeeper同步数据可能引起网络风暴。因此为了考虑性能问题，可以牺牲一些功能，而换取性能的提升</li>
+</ul>
+</li>
+<li>幂等性<ul>
+<li>elastic-job可牺牲部分性能用以保证同一分片项不会同时在两个服务器上运行</li>
+</ul>
+</li>
+<li>容错性<ul>
+<li>作业服务器与Zookeeper服务器通信失败则立即停止作业运行，防止作业注册中心将失效的分片分项配给其他作业服务器，而当前作业服务器仍在执行任务，导致重复执行</li>
+</ul>
+</li>
+</ul>
+<h5 id="流程图"><a href="#流程图" class="headerlink" title="流程图"></a>流程图</h5><p>作业启动流程图</p>
+<p><img src="/images/start.jpg"></p>
+<ul>
+<li>(1)第一台服务器上线触发主服务器选举。主服务器一旦下线，则重新触发选举，选举过程中阻塞，只有主服务器选举完成，才会执行其他任务。</li>
+<li>(2)某作业服务器上线时会自动将服务器信息注册到注册中心，下线时会自动更新服务器状态。</li>
+<li>(3)主节点选举，服务器上下线，分片总数变更均更新重新分片标记。</li>
+<li>(4)定时任务触发时，如需重新分片，则通过主服务器分片，分片过程中阻塞，分片结束后才可执行任务。如分片过程中主服务器下线，则先选举主服务器，再分片。</li>
+<li>(5)通过(4)可知，为了维持作业运行时的稳定性，运行过程中只会标记分片状态，不会重新分片。分片仅可能发生在下次任务触发前。</li>
+<li>(6)每次分片都会按服务器IP排序，保证分片结果不会产生较大波动。</li>
+<li>(7)实现失效转移功能，在某台服务器执行完毕后主动抓取未分配的分片，并且在某台服务器下线后主动寻找可用的服务器执行任务。    </li>
+</ul>
+<h3 id="使用中遇到的坑"><a href="#使用中遇到的坑" class="headerlink" title="使用中遇到的坑"></a>使用中遇到的坑</h3><p>首先看下最初的配置</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">job:simple</span> <span class="attr">id</span>=<span class="string">&quot;UpdateAdvertMatchTagJob&quot;</span> <span class="attr">class</span>=<span class="string">&quot;cn.com.duiba.tuia.core.biz.job.UpdateAdvertMatchTagJob&quot;</span> <span class="attr">description</span>=<span class="string">&quot;更新标签广告redis缓存数据&quot;</span> <span class="attr">registry-center-ref</span>=<span class="string">&quot;regCenter&quot;</span> <span class="attr">cron</span>=<span class="string">&quot;0 0/5 * * * ?&quot;</span>  <span class="attr">sharding-total-count</span>=<span class="string">&quot;1&quot;</span> <span class="attr">event-trace-rdb-data-source</span>=<span class="string">&quot;dataSource&quot;</span> /&gt;</span></span><br><span class="line">```                </span><br><span class="line">上面配置使用中遇到一个问题，就是第一次启动项目之后再修改这里的参数怎么都不生效。翻阅[官方文档](http://elasticjob.io/docs/elastic-job-lite/02-guide/config-manual/)发现有个overwrite的参数,它的意思是：</span><br><span class="line">&gt; 本地配置是否可覆盖注册中心配置，如果可覆盖，每次启动作业都以本地配置为准</span><br><span class="line"></span><br><span class="line">通过这个参数可以知道elastic-job，如果没有配置这个参数，配置第一次初始化之后不会在更改了。</span><br><span class="line">翻阅 `#JobScheduler#init` 作业初始化的源码</span><br><span class="line"></span><br><span class="line">```java</span><br><span class="line">/**</span><br><span class="line"> * 初始化作业.</span><br><span class="line"> */</span><br><span class="line">public void init() &#123;</span><br><span class="line">    LiteJobConfiguration liteJobConfigFromRegCenter = schedulerFacade.updateJobConfiguration(liteJobConfig);</span><br><span class="line">    JobRegistry.getInstance().setCurrentShardingTotalCount(liteJobConfigFromRegCenter.getJobName(), liteJobConfigFromRegCenter.getTypeConfig().getCoreConfig().getShardingTotalCount());</span><br><span class="line">    JobScheduleController jobScheduleController = new JobScheduleController(</span><br><span class="line">            createScheduler(), createJobDetail(liteJobConfigFromRegCenter.getTypeConfig().getJobClass()), liteJobConfigFromRegCenter.getJobName());</span><br><span class="line">    JobRegistry.getInstance().registerJob(liteJobConfigFromRegCenter.getJobName(), jobScheduleController, regCenter);</span><br><span class="line">    schedulerFacade.registerStartUpInfo(!liteJobConfigFromRegCenter.isDisabled());</span><br><span class="line">    jobScheduleController.scheduleJob(liteJobConfigFromRegCenter.getTypeConfig().getCoreConfig().getCron());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先是调用的更新配置方法，查看 <code>#ConfigurationService#persist </code>方法的实现 </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 持久化分布式作业配置信息.</span></span><br><span class="line"><span class="comment"> * </span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> liteJobConfig 作业配置</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">persist</span><span class="params">(<span class="keyword">final</span> LiteJobConfiguration liteJobConfig)</span> </span>&#123;</span><br><span class="line">    checkConflictJob(liteJobConfig);</span><br><span class="line">    <span class="keyword">if</span> (!jobNodeStorage.isJobNodeExisted(ConfigurationNode.ROOT) || liteJobConfig.isOverwrite()) &#123;</span><br><span class="line">        jobNodeStorage.replaceJobNode(ConfigurationNode.ROOT, LiteJobConfigurationGsonFactory.toJson(liteJobConfig));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里的if条件先判断注册中心的节点是否存在，如果不存在并且 <code>overwrite</code> 的配置为true才会更新注册中心里的配置。被坑的就是这里，不管怎么修改配置甚至加上了 <code>overwrite</code> 就是不生效。所以如果第一次初始化的时候没有加 <code>overwrite</code> 参数，之后你的配置不会再被修改了，除非自己手动修改注册中心的值，或者删除注册中心的值重新初始化。所以建议这个参数最好加上，这样也可以避免修改了注册中心里的值但是和代码里的配置又对不上的问题。</p>
+<hr>
+<p>第二个问题是追踪数据源的问题，通过程序自己创建的表名是大写的。那么问题来了，DBA那关通过不了，说大写的表名不符合规范。当时心里一万个草泥马，都快上线了，难道要卡在这里。<br>和DBA撕逼之后还是妥协修改表名称为小写，谁让人家是大腿呢。<br>查看数据源监听器 <code>#JobEventRdbListener#JobEventRdbStorage</code> </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String TABLE_JOB_EXECUTION_LOG = <span class="string">&quot;job_execution_log&quot;</span>;</span><br><span class="line">    </span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String TABLE_JOB_STATUS_TRACE_LOG = <span class="string">&quot;job_status_trace_log&quot;</span>;</span><br><span class="line">    </span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String TASK_ID_STATE_INDEX = <span class="string">&quot;idx_task_state&quot;</span>;</span><br><span class="line">    </span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> DataSource dataSource;</span><br><span class="line">    </span><br><span class="line"><span class="keyword">private</span> DatabaseType databaseType;</span><br><span class="line">```    </span><br><span class="line">它已经把表名放在了常量里，修改还是比较方便的，ok，这个问题也解决了。</span><br><span class="line"></span><br><span class="line">---</span><br><span class="line"></span><br><span class="line">第三个问题是在监控平台查看job配置列表总是报500的错误，查看作业状态展示的实现类 `#JobStatisticsAPIImpl#getJobBriefInfo`</span><br><span class="line"></span><br><span class="line">```java</span><br><span class="line"><span class="function"><span class="keyword">public</span> JobBriefInfo <span class="title">getJobBriefInfo</span><span class="params">(<span class="keyword">final</span> String jobName)</span> </span>&#123;</span><br><span class="line">    JobNodePath jobNodePath = <span class="keyword">new</span> JobNodePath(jobName);</span><br><span class="line">    JobBriefInfo result = <span class="keyword">new</span> JobBriefInfo();</span><br><span class="line">    result.setJobName(jobName);</span><br><span class="line">    String liteJobConfigJson = regCenter.get(jobNodePath.getConfigNodePath());</span><br><span class="line">    <span class="keyword">if</span> (liteJobConfigJson.isEmpty()) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    LiteJobConfiguration liteJobConfig = LiteJobConfigurationGsonFactory.fromJson(liteJobConfigJson);</span><br><span class="line">    result.setDescription(liteJobConfig.getTypeConfig().getCoreConfig().getDescription());</span><br><span class="line">    result.setCron(liteJobConfig.getTypeConfig().getCoreConfig().getCron());</span><br><span class="line">    result.setInstanceCount(getJobInstanceCount(jobName));</span><br><span class="line">    result.setShardingTotalCount(liteJobConfig.getTypeConfig().getCoreConfig().getShardingTotalCount());</span><br><span class="line">    result.setStatus(getJobStatus(jobName));</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br><span class="line">```    </span><br><span class="line">这里的 `liteJobConfigJson` 配置信息有可能为空，应该加个空判断</span><br><span class="line"></span><br><span class="line">```java</span><br><span class="line"><span class="keyword">if</span> (liteJobConfigJson  == <span class="keyword">null</span> || liteJobConfigJson.isEmpty()) </span><br></pre></td></tr></table></figure>
+<p>但是问题是什么情况下配置的信息会为空值呢？这个问题修复后界面上只会展示elastic-job 2.0的任务节点，于是我对比了下1.0和2.0在注册中心的目录结构，发现servers的结构不一样.</p>
+<p><img src="/images/deffied.jpg"></p>
+<p>所以如果是1.0的 job，获取子节点会是空值。所以job的控制台只能兼容到2.0。</p>
+<blockquote>
+<p>ps: 之前已经接入过elastic-job的系统都还停留在1.0版本</p>
+</blockquote>
+<hr>
+<p>第四个问题是在控制台禁用 job 之后，如果服务重启任务又被开启了。</p>
+<p><img src="/images/console.png"></p>
+<p>这里的原理和第一个问题一样，在任务初始化的时候，都会将任务为可用状态开启</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">schedulerFacade.registerStartUpInfo(!liteJobConfigFromRegCenter.isDisabled());</span><br></pre></td></tr></table></figure>
+
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>elastic-job的设计理念我觉都很巧妙，比如选举，如果是我可能会设计成同步锁，还有去中心化、分片策略、失效转移的思路也很值得去探究。  </p>
+<p>目前的elastic-job定位是一个基于java的定时任务调度框架，仍然有很多不足的地方：</p>
+<ol>
+<li>异构语言不支持<ul>
+<li>目前采用的无中心设计，难于支持多语言，后面需要考虑调度中心的可行性。</li>
+</ul>
+</li>
+<li>监控体系有待提高，目前只能通过注册中心做简单的存活和数据积压监控，未来需要做的监控部分有：<ul>
+<li>增加可监控维度，如作业运行时间等。</li>
+<li>基于JMX的内部状态监控。</li>
+<li>基于历史的全量数据监控，将所有监控数据通过flume等形式发到外部监控中心，提供实时分析功能。</li>
+</ul>
+</li>
+<li>不能支持多种注册中心。</li>
+<li>需要增加任务工作流，如任务依赖，初始化任务，清理任务等。</li>
+<li>失效转移功能的实时性有待提升。</li>
+<li>缺少更多作业类型支持，如文件，MQ等类型作业的支持。</li>
+<li>缺少更多分片策略支持。</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/java/" rel="tag"># java</a>
+              <a href="/tags/elastic-job/" rel="tag"># elastic-job</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/guava-cache/" rel="prev" title="Guava Cache 在广告系统中的优化">
+      <i class="fa fa-chevron-left"></i> Guava Cache 在广告系统中的优化
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/react-base/" rel="next" title="React 入门 （基础概念）">
+      React 入门 （基础概念） <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E4%BD%BF%E7%94%A8elastic-job"><span class="nav-number">1.</span> <span class="nav-text">为什么要使用elastic-job</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E4%BD%BF%E7%94%A8%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1"><span class="nav-number">1.0.1.</span> <span class="nav-text">为什么要使用定时任务</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E9%80%89%E6%8B%A9elastic-job"><span class="nav-number">1.0.2.</span> <span class="nav-text">为什么要选择elastic-job</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#elastic-job%E4%BB%8B%E7%BB%8D"><span class="nav-number">2.</span> <span class="nav-text">elastic-job介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E4%B8%BB%E8%A6%81%E5%8A%9F%E8%83%BD"><span class="nav-number">2.0.1.</span> <span class="nav-text">主要功能</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E6%B5%81%E7%A8%8B%E5%9B%BE"><span class="nav-number">2.0.2.</span> <span class="nav-text">流程图</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E4%B8%AD%E9%81%87%E5%88%B0%E7%9A%84%E5%9D%91"><span class="nav-number">3.</span> <span class="nav-text">使用中遇到的坑</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">谏言</p>
+  <div class="site-description" itemprop="description">老子来到这个世界就没想着活着回去</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">20</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">19</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/kongjun01" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;kongjun01" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">谏言</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
