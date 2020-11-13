@@ -21,20 +21,20 @@
     var CONFIG = {"hostname":"www.panaihua.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="项目拆分的时候，需要将老的请求转发到新的项目，配置location总是不生效，查资料发现是执行优先级的原因，现在对它的用法做个记录">
+  <meta name="description" content="收到告警后，笔者先登录到告警机器中， top 命令查看此时此刻的各个应用程序占用的内存大小，发现没有占用很大内存的进程。 执行 &#96;ps -ef&#96; 发现有很多chromium,查了资料都说是僵尸进程，但是僵尸进程应该不占用内存和cpu的...">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Nginx 配置location 匹配规则总结">
-<meta property="og:url" content="https://www.panaihua.com/nginx-location/index.html">
+<meta property="og:title" content="pyppeteer 内存泄漏排查">
+<meta property="og:url" content="https://www.panaihua.com/pyppeteer-process/index.html">
 <meta property="og:site_name" content="人淡如菊">
-<meta property="og:description" content="项目拆分的时候，需要将老的请求转发到新的项目，配置location总是不生效，查资料发现是执行优先级的原因，现在对它的用法做个记录">
+<meta property="og:description" content="收到告警后，笔者先登录到告警机器中， top 命令查看此时此刻的各个应用程序占用的内存大小，发现没有占用很大内存的进程。 执行 &#96;ps -ef&#96; 发现有很多chromium,查了资料都说是僵尸进程，但是僵尸进程应该不占用内存和cpu的...">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2016-12-19T16:00:00.000Z">
-<meta property="article:modified_time" content="2020-11-12T08:28:18.323Z">
+<meta property="article:published_time" content="2020-11-12T16:00:00.000Z">
+<meta property="article:modified_time" content="2020-11-13T04:28:48.273Z">
 <meta property="article:author" content="谏言">
-<meta property="article:tag" content="nginx">
+<meta property="article:tag" content="pyppeteer">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="https://www.panaihua.com/nginx-location/">
+<link rel="canonical" href="https://www.panaihua.com/pyppeteer-process/">
 
 
 <script id="page-configurations">
@@ -47,7 +47,7 @@
   };
 </script>
 
-  <title>Nginx 配置location 匹配规则总结 | 人淡如菊</title>
+  <title>pyppeteer 内存泄漏排查 | 人淡如菊</title>
   
 
 
@@ -170,7 +170,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://www.panaihua.com/nginx-location/">
+    <link itemprop="mainEntityOfPage" href="https://www.panaihua.com/pyppeteer-process/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -183,7 +183,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          Nginx 配置location 匹配规则总结
+          pyppeteer 内存泄漏排查
         </h1>
 
         <div class="post-meta">
@@ -192,16 +192,19 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
+              
 
-              <time title="创建时间：2016-12-20 00:00:00" itemprop="dateCreated datePublished" datetime="2016-12-20T00:00:00+08:00">2016-12-20</time>
+              <time title="创建时间：2020-11-13 00:00:00 / 修改时间：12:28:48" itemprop="dateCreated datePublished" datetime="2020-11-13T00:00:00+08:00">2020-11-13</time>
             </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-12 16:28:18" itemprop="dateModified" datetime="2020-11-12T16:28:18+08:00">2020-11-12</time>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
               </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%88%AC%E8%99%AB/" itemprop="url" rel="index"><span itemprop="name">爬虫</span></a>
+                </span>
+            </span>
 
           <br>
             <span class="post-meta-item" title="本文字数">
@@ -209,14 +212,14 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>2.4k</span>
+              <span>2.1k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>6 分钟</span>
+              <span>5 分钟</span>
             </span>
 
         </div>
@@ -228,22 +231,48 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p>项目拆分的时候，需要将老的请求转发到新的项目，配置location总是不生效，查资料发现是执行优先级的原因，现在对它的用法做个记录.</p>
-<h2 id="location正则写法"><a href="#location正则写法" class="headerlink" title="location正则写法"></a>location正则写法</h2><figure class="highlight vim"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">location  = / &#123;</span><br><span class="line">  # 精确匹配 / ，主机名后面不能带任何字符串</span><br><span class="line">  [ configuration A ]</span><br><span class="line">&#125;</span><br><span class="line">location  / &#123;</span><br><span class="line">  # 因为所有的地址都以 / 开头，所以这条规则将匹配到所有请求</span><br><span class="line">  # 但是正则和最长字符串会优先匹配</span><br><span class="line">  [ configuration B ]</span><br><span class="line">&#125;</span><br><span class="line">location /documents/ &#123;</span><br><span class="line">  # 匹配任何以 /documents/ 开头的地址，匹配符合以后，还要继续往下搜索</span><br><span class="line">  # 只有后面的正则表达式没有匹配到时，这一条才会采用这一条</span><br><span class="line">  [ configuration C ]</span><br><span class="line">&#125;</span><br><span class="line">location ~ /documents/Abc &#123;</span><br><span class="line">  # 匹配任何以 /documents/Abc 开头的地址，匹配符合以后，还要继续往下搜索</span><br><span class="line">  # 只有后面的正则表达式没有匹配到时，这一条才会采用这一条</span><br><span class="line">  [ configuration CC ]</span><br><span class="line">&#125;</span><br><span class="line">location ^~ /images/ &#123;</span><br><span class="line">  # 匹配任何以 /images/ 开头的地址，匹配符合以后，停止往下搜索正则，采用这一条。</span><br><span class="line">  [ configuration D ]</span><br><span class="line">&#125;</span><br><span class="line">location ~* \.(gif|jpg|jpeg)$ &#123;</span><br><span class="line">  # 匹配所有以 gif,jpg或jpeg 结尾的请求</span><br><span class="line">  # 然而，所有请求 /images/ 下的图片会被 config D 处理，因为 ^~ 到达不了这一条正则</span><br><span class="line">  [ configuration E ]</span><br><span class="line">&#125;</span><br><span class="line">location /images/ &#123;</span><br><span class="line">  # 字符匹配到 /images/，继续往下，会发现 ^~ 存在</span><br><span class="line">  [ configuration F ]</span><br><span class="line">&#125;</span><br><span class="line">location /images/<span class="keyword">abc</span> &#123;</span><br><span class="line">  # 最长字符匹配到 /images/<span class="keyword">abc</span>，继续往下，会发现 ^~ 存在</span><br><span class="line">  # F与G的放置顺序是没有关系的</span><br><span class="line">  [ configuration G ]</span><br><span class="line">&#125;</span><br><span class="line">location ~ /images/<span class="keyword">abc</span>/ &#123;</span><br><span class="line">  # 只有去掉 config D 才有效：先最长匹配 config G 开头的地址，继续往下搜索，匹配到这一条正则，采用</span><br><span class="line">    [ configuration H ]</span><br><span class="line">&#125;</span><br><span class="line">location ~* /js/.*/\.js</span><br></pre></td></tr></table></figure>
-<ul>
-<li>开头表示精确匹配</li>
-<li>如 A 中只匹配根目录结尾的请求，后面不能带任何字符串。</li>
-<li>^~ 开头表示uri以某个常规字符串开头，不是正则匹配</li>
-<li>~ 开头表示区分大小写的正则匹配;</li>
-<li>~* 开头表示不区分大小写的正则匹配</li>
-<li>/ 通用匹配, 如果没有其它匹配,任何请求都会匹配到</li>
-</ul>
-<h2 id="顺序优先级"><a href="#顺序优先级" class="headerlink" title="顺序优先级"></a>顺序优先级</h2><blockquote>
-<p>(location =) &gt; (location 完整路径) &gt; (location ^~ 路径) &gt; (location <del>,</del>* 正则顺序)  &gt;(location 部分起始路径) &gt; (/)</p>
+        <blockquote>
+<p>在工作中很少能够碰到内存泄漏的问题，但是一旦遇到了，就是一个比较难解的问题，<br> 本文旨在记录这次在问题排查的过程中，一些思路和排查方向</p>
 </blockquote>
-<p><strong>上面的匹配结果，按照上面的location写法，以下的匹配示例成立</strong><br>/ -&gt; config A<br>精确完全匹配，即使/index.html也匹配不了<br>/downloads/download.html -&gt; config B<br>匹配B以后，往下没有任何匹配，采用B<br>/images/1.gif -&gt; configuration D<br>匹配到F，往下匹配到D，停止往下<br>/images/abc/def -&gt; config D<br>最长匹配到G，往下匹配D，停止往下<br>你可以看到 任何以/images/开头的都会匹配到D并停止，FG写在这里是没有任何意义的，H是永远轮不到  的，这里只是为了说明匹配顺序<br>/documents/document.html -&gt; config C<br>匹配到C，往下没有任何匹配，采用C<br>/documents/1.jpg -&gt; configuration E<br>匹配到C，往下正则匹配到E<br>/documents/Abc.jpg -&gt; config CC<br>最长匹配到C，往下正则顺序匹配到CC，不会往下到E  </p>
-<h2 id="实际使用建议"><a href="#实际使用建议" class="headerlink" title="实际使用建议"></a>实际使用建议</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">所以实际使用中，个人觉得至少有三个匹配规则定义，如下：</span><br><span class="line">#直接匹配网站根，通过域名访问网站首页比较频繁，使用这个会加速处理，官网如是说。</span><br><span class="line">#这里是直接转发给后端应用服务器了，也可以是一个静态首页</span><br><span class="line"># 第一个必选规则</span><br><span class="line">location &#x3D; &#x2F; &#123;</span><br><span class="line">    proxy_pass http:&#x2F;&#x2F;tomcat:8080&#x2F;index</span><br><span class="line">&#125;</span><br><span class="line"># 第二个必选规则是处理静态文件请求，这是nginx作为http服务器的强项</span><br><span class="line"># 有两种配置模式，目录匹配或后缀匹配,任选其一或搭配使用</span><br><span class="line">location ^~ &#x2F;static&#x2F; &#123;</span><br><span class="line">    root &#x2F;webroot&#x2F;static&#x2F;;</span><br><span class="line">&#125;</span><br><span class="line">location ~* \.(gif|jpg|jpeg|png|css|js|ico)$ &#123;</span><br><span class="line">    root &#x2F;webroot&#x2F;res&#x2F;;</span><br><span class="line">&#125;</span><br><span class="line">#第三个规则就是通用规则，用来转发动态请求到后端应用服务器</span><br><span class="line">#非静态文件请求就默认是动态请求，自己根据实际把握</span><br><span class="line">#毕竟目前的一些框架的流行，带.php,.jsp后缀的情况很少了</span><br><span class="line">location &#x2F; &#123;</span><br><span class="line">    proxy_pass http:&#x2F;&#x2F;tomcat:8080&#x2F;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>附上两个地址：<br><em><a target="_blank" rel="noopener" href="http://tengine.taobao.org/book/chapter_02.html">http://tengine.taobao.org/book/chapter_02.html</a></em><br><em><a target="_blank" rel="noopener" href="http://nginx.org/en/docs/http/ngx_http_rewrite_module.html">http://nginx.org/en/docs/http/ngx_http_rewrite_module.html</a></em></p>
+<p> 收到告警后，笔者先登录到告警机器中，<br> top 命令查看此时此刻的各个应用程序占用的内存大小，发现没有占用很大内存的进程。<br> 执行 <code>ps -ef</code> 发现有很多chromium,查了资料都说是僵尸进程，但是僵尸进程应该不占用内存和cpu的。</p>
+<blockquote>
+<p>僵尸子进程已经放弃了几乎所有的内存空间，没有任何可执行代码，也不能被调度，仅仅在进程列表中保留一个位置，记载该进程的退出状态信息供其他进程收集，除此之外，僵尸进程不再占有任何存储空间。他需要他的父进程来为他收尸，如果他的父进程没有安装SIGCHLD信号处理函数调用wait 或 waitpid() 等待子进程结束，也没有显式忽略该信号，那么它就一直保持僵尸状态，如果这时候父进程结束了，那么init进程会自动接手这个子进程，为他收尸，他还是能被清除掉的。但是如果父进程是一个循环，不会结束，那么子进程就会一直保持僵尸状态，这就是系统中为什么有时候会有很多的僵尸进程。</p>
+</blockquote>
+<h5 id="第一步先内存分析"><a href="#第一步先内存分析" class="headerlink" title="第一步先内存分析"></a>第一步先内存分析</h5><p>网上有很多方式，没几个好用的。后来发现一款工具 <code>pyrasite</code>, 可以直接连上一个正在运行的python程序，打开一个类似python的交互终端来运行命令、检查程序状态。很像阿里开源的的Arthas，这种真的超级方便。</p>
+<p>首先安装</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># pip install pyrasite</span><br></pre></td></tr></table></figure>
+
+<p>连接到有问题的python程序，开始收集信息</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">pyrasite-shell &lt;pid&gt;</span><br><span class="line">&gt;&gt;&gt;</span><br></pre></td></tr></table></figure>
+
+<p>接下来就可以在<pid>进程里调用任意python代码，查看进程状态。<br>所以就可以使用 guppy 获取内存使用的各种对象占用情况，可以打印各种对象所占空间大小，如果python进程中有未释放的对象，造成内存占用升高，可通过guppy查看。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># pip install guppy</span><br><span class="line">from guppy import hpy</span><br><span class="line">h &#x3D; hpy()</span><br><span class="line">h.heap()</span><br></pre></td></tr></table></figure>
+
+<p>结果运行如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"># Partition of a set of 48477 objects. Total size &#x3D; 3265516 bytes.</span><br><span class="line"># Index Count % Size % Cumulative % Kind (class &#x2F; dict of class)</span><br><span class="line"># 0 25773 53 1612820 49 1612820 49 str</span><br><span class="line"># 1 11699 24 483960 15 2096780 64 tuple</span><br><span class="line"># 2 174 0 241584 7 2338364 72 dict of module</span><br><span class="line"># 3 3478 7 222592 7 2560956 78 types.CodeType</span><br><span class="line"># 4 3296 7 184576 6 2745532 84 function</span><br><span class="line"># 5 401 1 175112 5 2920644 89 dict of class</span><br><span class="line"># 6 108 0 81888 3 3002532 92 dict (no owner)</span><br><span class="line"># 7 114 0 79632 2 3082164 94 dict of type</span><br><span class="line"># 8 117 0 51336 2 3133500 96 type</span><br><span class="line"># 9 667 1 24012 1 3157512 97 __builtin__.wrapper_descriptor</span><br><span class="line"># &lt;76 more rows. Type e.g. &#39;_.more&#39; to view.&gt;</span><br></pre></td></tr></table></figure>
+
+<p>发现占用最大的是str，占比很小，所以确定就是僵尸进程的问题了。</p>
+<h5 id="解决僵尸进程"><a href="#解决僵尸进程" class="headerlink" title="解决僵尸进程"></a>解决僵尸进程</h5><p>使用专门的 init 进程 <a target="_blank" rel="noopener" href="https://juejin.im/post/6844904029248552973">查看文章</a><br>原来的启动方式：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#ENTRYPOINT gunicorn -w 1 --threads 60 -b 0.0.0.0:5000 server:app</span><br></pre></td></tr></table></figure>
+
+<p>变更后：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ENTRYPOINT [&quot;dumb-init&quot;, &quot;--&quot;]</span><br><span class="line">CMD [&quot;bash&quot;, &quot;-c&quot;, &quot;gunicorn -w 1 --threads 60 -b 0.0.0.0:5000 server:app&quot;]</span><br></pre></td></tr></table></figure>
+
+<p>运行一段时间进程照样还是多，问题没有解决</p>
+<h5 id="手动关闭chrome进程"><a href="#手动关闭chrome进程" class="headerlink" title="手动关闭chrome进程"></a>手动关闭chrome进程</h5><p><a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/53939503/puppeteer-doesnt-close-browser">原文地址</a></p>
+<p>修改之后的代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> browser <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">    <span class="keyword">await</span> browser.close()</span><br><span class="line">		os.system(<span class="string">&#x27;pkill chrome&#x27;</span>)</span><br></pre></td></tr></table></figure>
+
+<p>问题还是没有解决</p>
+<h5 id="从代码方面解决"><a href="#从代码方面解决" class="headerlink" title="从代码方面解决"></a>从代码方面解决</h5><p>通过调试程序，发现程序一直卡在这里，当没有这个节点的时候一直在等待</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">title_elements &#x3D; await page.xpath(&#39;&#x2F;&#x2F;*[@class&#x3D;&quot;cc-button cc-button-default ad-login-comp-btn &quot;]&#x2F;div&#39;)</span><br></pre></td></tr></table></figure>
+
+<p>修改为问题解决</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">await page.waitForXPath(&#39;&#x2F;&#x2F;*[@class&#x3D;&quot;cc-button cc-button-default ad-login-comp-btn &quot;]&#x2F;div&#39;, &#123;&#39;timeout&#39;: 2000&#125;)</span><br></pre></td></tr></table></figure>
+
+
+
+
 
     </div>
 
@@ -253,7 +282,7 @@
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/nginx/" rel="tag"># nginx</a>
+              <a href="/tags/pyppeteer/" rel="tag"># pyppeteer</a>
           </div>
 
         
@@ -262,13 +291,10 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/redis-lock/" rel="prev" title="用Redis实现分布式锁">
-      <i class="fa fa-chevron-left"></i> 用Redis实现分布式锁
+    <a href="/airtest-sum/" rel="prev" title="使用Airtest爬虫总结和注意事项">
+      <i class="fa fa-chevron-left"></i> 使用Airtest爬虫总结和注意事项
     </a></div>
-      <div class="post-nav-item">
-    <a href="/gradle-refresh/" rel="next" title="Gradle SNAPSHOT版本不能更新的问题">
-      Gradle SNAPSHOT版本不能更新的问题 <i class="fa fa-chevron-right"></i>
-    </a></div>
+      <div class="post-nav-item"></div>
     </div>
       </footer>
     
@@ -328,7 +354,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#location%E6%AD%A3%E5%88%99%E5%86%99%E6%B3%95"><span class="nav-number">1.</span> <span class="nav-text">location正则写法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A1%BA%E5%BA%8F%E4%BC%98%E5%85%88%E7%BA%A7"><span class="nav-number">2.</span> <span class="nav-text">顺序优先级</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E9%99%85%E4%BD%BF%E7%94%A8%E5%BB%BA%E8%AE%AE"><span class="nav-number">3.</span> <span class="nav-text">实际使用建议</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%E5%85%88%E5%86%85%E5%AD%98%E5%88%86%E6%9E%90"><span class="nav-number">1.</span> <span class="nav-text">第一步先内存分析</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E5%83%B5%E5%B0%B8%E8%BF%9B%E7%A8%8B"><span class="nav-number">2.</span> <span class="nav-text">解决僵尸进程</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E6%89%8B%E5%8A%A8%E5%85%B3%E9%97%ADchrome%E8%BF%9B%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">手动关闭chrome进程</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E4%BB%8E%E4%BB%A3%E7%A0%81%E6%96%B9%E9%9D%A2%E8%A7%A3%E5%86%B3"><span class="nav-number">4.</span> <span class="nav-text">从代码方面解决</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -489,7 +515,7 @@ NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
       repo        : 'panaihua',
       owner       : 'kongjun01',
       admin       : ['kongjun01'],
-      id          : 'e89d5aefb79a05a34d5a038d70d21bda',
+      id          : '9d96592f7f47f5658c2daaf9cd3f2223',
         language: 'zh-CN',
       distractionFreeMode: true
     });
