@@ -242,13 +242,6 @@
   </url>
   
   <url>
-    <loc>https://www.panaihua.com/tags/Guava/</loc>
-    <lastmod>2020-11-20</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
     <loc>https://www.panaihua.com/tags/GC/</loc>
     <lastmod>2020-11-20</lastmod>
     <changefreq>daily</changefreq>
@@ -256,14 +249,7 @@
   </url>
   
   <url>
-    <loc>https://www.panaihua.com/tags/Mybaits/</loc>
-    <lastmod>2020-11-20</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://www.panaihua.com/tags/Binlog/</loc>
+    <loc>https://www.panaihua.com/tags/Guava/</loc>
     <lastmod>2020-11-20</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -277,7 +263,21 @@
   </url>
   
   <url>
+    <loc>https://www.panaihua.com/tags/Mybaits/</loc>
+    <lastmod>2020-11-20</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://www.panaihua.com/tags/Mysql/</loc>
+    <lastmod>2020-11-20</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.panaihua.com/tags/Binlog/</loc>
     <lastmod>2020-11-20</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -305,14 +305,14 @@
   </url>
   
   <url>
-    <loc>https://www.panaihua.com/tags/React/</loc>
+    <loc>https://www.panaihua.com/tags/Redis/</loc>
     <lastmod>2020-11-20</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
-    <loc>https://www.panaihua.com/tags/Redis/</loc>
+    <loc>https://www.panaihua.com/tags/React/</loc>
     <lastmod>2020-11-20</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
