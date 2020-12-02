@@ -21,23 +21,20 @@
     var CONFIG = {"hostname":"www.panaihua.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="我们现在遇到一个问题，每次在发券系统里面增加一个表操作的时候，都会实现缓存，实现了缓存就要实现通知刷新，所以程序里只要有更新的操作都要硬编码发送一次消息。这个过程维护成本太大，就想到是否有什么方法可以实现自动通知刷新。">
+  <meta name="description" content="这篇文章主要想解决的问题是，在对安卓手机APP抓包时，出现的HTTPS报文通过MITM代理后证书不被信任的问题。如果有些https，在之前设置了好各种证书和配置后，看到的unknown..而无法看到我们希望的明文数据">
 <meta property="og:type" content="article">
-<meta property="og:title" content="记一次 Binlog 的应用">
-<meta property="og:url" content="https://www.panaihua.com/mysql-binlog/index.html">
+<meta property="og:title" content="破解APP抓包限制(绕开https的SSL Pinning)">
+<meta property="og:url" content="https://www.panaihua.com/android-catchhttp/index.html">
 <meta property="og:site_name" content="人淡如菊">
-<meta property="og:description" content="我们现在遇到一个问题，每次在发券系统里面增加一个表操作的时候，都会实现缓存，实现了缓存就要实现通知刷新，所以程序里只要有更新的操作都要硬编码发送一次消息。这个过程维护成本太大，就想到是否有什么方法可以实现自动通知刷新。">
+<meta property="og:description" content="这篇文章主要想解决的问题是，在对安卓手机APP抓包时，出现的HTTPS报文通过MITM代理后证书不被信任的问题。如果有些https，在之前设置了好各种证书和配置后，看到的unknown..而无法看到我们希望的明文数据">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://www.panaihua.com/images/binlog-1.png">
-<meta property="og:image" content="https://www.panaihua.com/images/binlog-2.png">
-<meta property="article:published_time" content="2019-01-17T16:00:00.000Z">
-<meta property="article:modified_time" content="2020-11-26T09:47:36.556Z">
+<meta property="article:published_time" content="2020-12-01T16:00:00.000Z">
+<meta property="article:modified_time" content="2020-12-02T12:32:56.242Z">
 <meta property="article:author" content="谏言">
-<meta property="article:tag" content="Binlog">
+<meta property="article:tag" content="爬虫">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://www.panaihua.com/images/binlog-1.png">
 
-<link rel="canonical" href="https://www.panaihua.com/mysql-binlog/">
+<link rel="canonical" href="https://www.panaihua.com/android-catchhttp/">
 
 
 <script id="page-configurations">
@@ -50,7 +47,7 @@
   };
 </script>
 
-  <title>记一次 Binlog 的应用 | 人淡如菊</title>
+  <title>破解APP抓包限制(绕开https的SSL Pinning) | 人淡如菊</title>
   
 
 
@@ -178,7 +175,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://www.panaihua.com/mysql-binlog/">
+    <link itemprop="mainEntityOfPage" href="https://www.panaihua.com/android-catchhttp/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -191,7 +188,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          记一次 Binlog 的应用
+          破解APP抓包限制(绕开https的SSL Pinning)
         </h1>
 
         <div class="post-meta">
@@ -200,23 +197,17 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
+              
 
-              <time title="创建时间：2019-01-18 00:00:00" itemprop="dateCreated datePublished" datetime="2019-01-18T00:00:00+08:00">2019-01-18</time>
+              <time title="创建时间：2020-12-02 00:00:00 / 修改时间：20:32:56" itemprop="dateCreated datePublished" datetime="2020-12-02T00:00:00+08:00">2020-12-02</time>
             </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-26 17:47:36" itemprop="dateModified" datetime="2020-11-26T17:47:36+08:00">2020-11-26</time>
-              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
               </span>
               <span class="post-meta-item-text">分类于</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Mysql/" itemprop="url" rel="index"><span itemprop="name">Mysql</span></a>
+                  <a href="/categories/Android/" itemprop="url" rel="index"><span itemprop="name">Android</span></a>
                 </span>
             </span>
 
@@ -226,14 +217,14 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>3.1k</span>
+              <span>1k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>8 分钟</span>
+              <span>3 分钟</span>
             </span>
 
         </div>
@@ -245,34 +236,47 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>我们现在遇到一个问题，每次在发券系统里面增加一个表操作的时候，都会实现缓存，实现了缓存就要实现通知刷新，所以程序里只要有更新的操作都要硬编码发送一次消息。这个过程维护成本太大，就想到是否有什么方法可以实现自动通知刷新。</p>
-<p>所以我就在这里小小去了解一下 Binlog。</p>
-<h3 id="什么是Binlog"><a href="#什么是Binlog" class="headerlink" title="什么是Binlog"></a>什么是Binlog</h3><p><code>MySQL</code> 有四种类型的日志——Error Log、General Query Log、Binary Log 和 Slow Query Log。</p>
-<p>第一个是错误日志，记录 <code>MySQL</code> 的一些错误。第二个是一般查询日志，记录 <code>MySQL</code> 正在做的事情，比如客户端的连接和断开、来自客户端每条 <code>Sql Statement</code> 记录信息；如果你想准确知道客户端到底传了什么瞎 [哔哔] 玩意儿给服务端，这个日志就非常管用了，不过它非常影响性能。第四个是慢查询日志，记录一些查询比较慢的 SQL 语句——这种日志非常常用，主要是给开发者调优用的。</p>
-<p>剩下的第三种就是<code>Binlog</code>了，包含了一些事件，这些事件描述了数据库的改动，如建表、数据改动等，也包括一些潜在改动，比如</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">DELETE</span> <span class="keyword">FROM</span> xxx <span class="keyword">WHERE</span> bing = xxx</span><br></pre></td></tr></table></figure>
-
-<p>然而一条数据都没被删掉的这种情况。除非使用 Row-based logging，否则会包含所有改动数据的<code>SQL Statement</code>。</p>
-<p>显然，我们执行 <code>SELECT</code> 等不设计数据变更的语句是不会记录 <code>Binlog</code> 的，而涉及到数据更新则会记录。要注意的是，对支持事务的引擎如InnoDB而言，必须要提交了事务才会记录 <code>Binlog</code>。<code>Binlog</code> 是在事务最终commit前写入的，<code>Binlog</code> 什么时候刷新到磁盘跟参数sync_binlog相关。如果设置为0，则表示<code>MySQL</code>不控制 <code>Binlog</code> 的刷新，由文件系统去控制它缓存的刷新，而如果设置为不为0的值则表示每sync_binlog次事务，MySQL调用文件系统的刷新操作刷新 <code>Binlog</code> 到磁盘中。设为1是最安全的，在系统故障时最多丢失一个事务的更新，但是会对性能有所影响，一般情况下会设置为100或者0，牺牲一定的一致性来获取更好的性能.</p>
-<h3 id="流程设计"><a href="#流程设计" class="headerlink" title="流程设计"></a>流程设计</h3><p><img src="/images/binlog-1.png"></p>
-<p>mysql-binlog-connector-server实现监听binlog，收到之后放入队列中，另起一个线程消耗队列。<br>利用钩子在宕机之前保存消费到的position。</p>
-<blockquote>
-<p>保存position的信息本来想是放在mysql，但是后期会增加HA，需要使用Zookeeper保持心跳，为了方便还是选择保存在Zookeeper</p>
+        <h3 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h3><blockquote>
+<p>这里写下来是为了防止自己遗忘的，毕竟去刷机也不是经常有的事</p>
 </blockquote>
-<p><img src="/images/binlog-2.png"></p>
+<p>这篇文章主要想解决的问题是，在对安卓手机APP抓包时，出现的HTTPS报文通过MITM代理后证书不被信任的问题。如果有些https，在之前设置了好各种证书和配置后，看到的：</p>
 <ul>
-<li><p>EventListener: 在向mysql发送dump命令之前会先从Zookeeper中获取上次解析成功的 <code>Position</code> （如果是第一次启动，则获取初始指定位置或者当前数据段binlog位点）。mysql接受到dump命令后，由EventListener从mysql上pull binlog数据进行解析并传递给 <code>parse</code> (传递给parse 模块进行数据存储，是一个阻塞操作，直到存储成功)，传送成功之后更新 <code>Position</code>。</p>
+<li>要么是unknown</li>
+<li>要么是：加密的乱码</li>
+<li>要么是：报错无法抓包</li>
+</ul>
+<p>而无法看到我们希望的明文数据，则：</p>
+<p>最大可能是，对方用了https的 <code>SSL pinning</code></p>
+<h4 id="什么是SSL-Pinning"><a href="#什么是SSL-Pinning" class="headerlink" title="什么是SSL Pinning"></a>什么是SSL Pinning</h4><blockquote>
+<p>SSL pinning = 证书绑定 = SSL证书绑定</p>
+</blockquote>
+<p>对方的app内部，只允许，承认其自己的，特定的证书</p>
+<p>导致此处MITM的证书不识别，不允许</p>
+<p>导致MITM无法解密看到https的明文数据</p>
+<h4 id="Android-7-0之后系统如何破解https的ssl-pinning"><a href="#Android-7-0之后系统如何破解https的ssl-pinning" class="headerlink" title="Android 7.0之后系统如何破解https的ssl pinning"></a>Android 7.0之后系统如何破解https的ssl pinning</h4><p>对于Android 7.0 (API 24) 之后，做了些改动，使得系统安全性增加了，导致：</p>
+<ul>
+<li>APP 默认不信任用户域的证书。之前把MITM的ssl证书，安装到 受信任的凭据 -&gt; 用户 就没用了，因为不受信任了。只信任（安装到）系统域的证书</li>
+</ul>
+<p>导致无法抓包https，抓出来的https的请求，都是加了密的，无法看到原文了。</p>
+<p>对此，总结出相关解决思路和方案：</p>
+<ul>
+<li><p>（努力想办法）让系统信任Charles的ssl证书</p>
+<ul>
+<li>作为app的开发者自己：改自己的app的配置，允许https抓包。前提是得到或本身有app的源码</li>
+<li>把证书放到受系统信任的系统证书中去。前提是手机已root</li>
+</ul>
 </li>
-<li><p>MessagContaner: 保存解析成功的数据，交给 <code>DataSchdule</code> 处理。设计这个模块是为了缓冲，防止重复发送消息。</p>
+<li><p>绕开https不去校验</p>
+<ul>
+<li>借助于其他（JustTrustMe等）工具绕开https的校验。需要借助其他XPosed等框架配合才可以 （这里只介绍这一种方案）</li>
+</ul>
 </li>
 </ul>
-<p>下面是模拟mysql的slave时收到的消息</p>
-<blockquote>
-<p>{before=[797, 3528, zjy-客户1-广告1, 100004, 2017-03-24, 2017-04-09, 1488857138210, 1488857138210, 0, 0, 2, 4, null, null, null, null, null, null, null, null, 1, null, null, null, null, null, null, Mon Mar 06 23:00:36 CST 2017, Thu Oct 12 03:23:18 CST 2017, 0, 0, 0, 26526708857909, null, 1, 0, 1.000], after=[797, 3528, zjy-客户1-广告1, 100004, 2017-10-11, 2017-04-09, 1488857138210, 1488857138210, 0, 0, 2, 4, null, null, null, null, null, null, null, null, 1, null, null, null, null, null, null, Mon Mar 06 23:00:36 CST 2017, Thu Oct 12 22:01:15 CST 2017, 0, 0, 0, 26526708857909, null, 1, 0, 1.000]},<br>    {before=[885, 3528, zjy-客户1-广告1, 333001, 2017-03-08, 2017-04-27, 1489993531824, 1489993531824, 0, 0, 2, 4, null, null, null, null, null, null, null, null, 1, null, null, null, null, null, null, Mon Mar 20 23:05:31 CST 2017, Thu Oct 12 01:45:16 CST 2017, 0, 0, 0, 27795375556109, null, 0, 0, 1.000], after=[885, 3528, zjy-客户1-广告1, 333001, 2017-10-11, 2017-04-27, 1489993531824, 1489993531824, 0, 0, 2, 4, null, null, null, null, null, null, null, null, 1, null, null, null, null, null, null, Mon Mar 20 23:05:31 CST 2017, Thu Oct 12 22:01:15 CST 2017, 0, 0, 0, 27795375556109, null, 0, 0, 1.000]},<br>    {before=[4882, 3531, zjy-客户2-广告1, 12200, 2017-04-14, 2017-04-14, 1492148740122, 1492148740122, 1, 0, 0, 3, null, null, null, null, null, null, null, null, 1, null, null, null, null, null, null, Fri Apr 14 21:44:11 CST 2017, Sat Sep 02 00:17:55 CST 2017, 0, 0, 0, 30055174218659, null, 0, 0, 1.000], after=[4882, 3531, zjy-客户2-广告1, 12200, 2017-10-11, 2017-04-14, 1492148740122, 1492148740122, 1, 0, 0, 3, null, null, null, null, null, null, null, null, 1, null, null, null, null, null, null, Fri Apr 14 21:44:11 CST 2017, Thu Oct 12 22:01:15 CST 2017, 0, 0, 0, 30055174218659, null, 0, 0, 1.000]}<br>]}}Event{header=EventHeaderV4{timestamp=1507788075000, eventType=XID, serverId=1, headerLength=19, dataLength=12, nextPosition=81793595, flags=0}, data=XidEventData{xid=3329634}}</p>
-</blockquote>
-<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>这里相当于一个迷你的 <code>Canal</code> ，还有很多场景没有实现，比如一致性，HA。如果有机会在参考 <code>Canal</code> 的设计。</p>
-<p>参考资料：</p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/u012758088/article/details/78788523">canal系列—Canal 的介绍</a></p>
+<h3 id="刷机（ROOT）"><a href="#刷机（ROOT）" class="headerlink" title="刷机（ROOT）"></a>刷机（ROOT）</h3><p>网上有很多刷机教程，我试过小米、oppo、华为、一加，除了一加其它root都需要很多门槛，oppo需要深度测试申请，审核估计都要15天，华为需要解锁码，小米也要申请，而一加什么门槛都没有，而且官方论坛一堆小白刷机工具，一键就能搞定。所以极力推荐一加手机。</p>
+<p>这里推荐 @千古风流帝 的 <a target="_blank" rel="noopener" href="https://www.oneplusbbs.com/thread-4701007-1.html">工具箱</a>，该工具箱里包含了解锁、TWRP、Root 等一系列无脑操作。按照软件的教程，先解锁在ROOT，它会自动刷入 <a target="_blank" rel="noopener" href="https://github.com/topjohnwu/Magisk">Magisk</a>，刷完之后多一个MagiskManager的APP。至此ROOT已经成完成</p>
+<h4 id="安装太极·Magisk"><a href="#安装太极·Magisk" class="headerlink" title="安装太极·Magisk"></a>安装太极·Magisk</h4><p>按照官方教程刷入，这里不在赘述，<a target="_blank" rel="noopener" href="https://github.com/taichi-framework/TaiChi/wiki/%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8">教程地址</a></p>
+<h4 id="安装JustTrustMe模块"><a href="#安装JustTrustMe模块" class="headerlink" title="安装JustTrustMe模块"></a>安装JustTrustMe模块</h4><p> <a target="_blank" rel="noopener" href="https://github.com/taichi-framework/TaiChi/issues/538">JustTrustMe下载地址</a></p>
+<p> ok，这样就可以正常抓包了，测试手机是一加5T，测试APP是抖音。</p>
 
     </div>
 
@@ -282,7 +286,7 @@
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/Binlog/" rel="tag"># Binlog</a>
+              <a href="/tags/%E7%88%AC%E8%99%AB/" rel="tag"># 爬虫</a>
           </div>
 
         
@@ -291,13 +295,10 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/react-base/" rel="prev" title="React 入门 （基础概念）">
-      <i class="fa fa-chevron-left"></i> React 入门 （基础概念）
+    <a href="/lettuce-blocked/" rel="prev" title="springboot2 整合lettuce启动卡住的问题">
+      <i class="fa fa-chevron-left"></i> springboot2 整合lettuce启动卡住的问题
     </a></div>
-      <div class="post-nav-item">
-    <a href="/same-key/" rel="next" title="如何判断SSL证书的私钥和证书匹配">
-      如何判断SSL证书的私钥和证书匹配 <i class="fa fa-chevron-right"></i>
-    </a></div>
+      <div class="post-nav-item"></div>
     </div>
       </footer>
     
@@ -357,7 +358,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFBinlog"><span class="nav-number">2.</span> <span class="nav-text">什么是Binlog</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%81%E7%A8%8B%E8%AE%BE%E8%AE%A1"><span class="nav-number">3.</span> <span class="nav-text">流程设计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%8B%E7%BB%8D"><span class="nav-number">1.</span> <span class="nav-text">介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFSSL-Pinning"><span class="nav-number">1.1.</span> <span class="nav-text">什么是SSL Pinning</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Android-7-0%E4%B9%8B%E5%90%8E%E7%B3%BB%E7%BB%9F%E5%A6%82%E4%BD%95%E7%A0%B4%E8%A7%A3https%E7%9A%84ssl-pinning"><span class="nav-number">1.2.</span> <span class="nav-text">Android 7.0之后系统如何破解https的ssl pinning</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%B7%E6%9C%BA%EF%BC%88ROOT%EF%BC%89"><span class="nav-number">2.</span> <span class="nav-text">刷机（ROOT）</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%89%E8%A3%85%E5%A4%AA%E6%9E%81%C2%B7Magisk"><span class="nav-number">2.1.</span> <span class="nav-text">安装太极·Magisk</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%89%E8%A3%85JustTrustMe%E6%A8%A1%E5%9D%97"><span class="nav-number">2.2.</span> <span class="nav-text">安装JustTrustMe模块</span></a></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -520,7 +521,7 @@ NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
       repo        : 'panaihua',
       owner       : 'kongjun01',
       admin       : ['kongjun01'],
-      id          : '89e3e725ea3217fd959348c17e2d7011',
+      id          : 'f7867c71510aa836b1b8b1c7143e34f4',
         language: 'zh-CN',
       distractionFreeMode: true
     });
