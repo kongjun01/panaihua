@@ -21,15 +21,14 @@
     var CONFIG = {"hostname":"www.panaihua.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="背景测试开发环境所有前端页面需要嵌入一段前端脚本，方便开发者在手机浏览器里调试，类似小程序调试的功能。 谈谈 body_filter_by_lua* 多次调用的问题正如 OpenResty 文档中指出，body_filter_by_lua* 可能会在一次请求中多次调用。  Nginx output filters may be called multiple times for a single">
+  <meta name="description" content="不过初看下来，很难将 &#96;echo hello world&#96;; 和 &#96;delivered in chunks&#96; 联系起来。这个 &#96;chunk&#96; 的大小是怎么确定的？看例子，应该跟 &#96;echo&#x2F;ngx.say&#96; 这一类输出方式有关。但是会不会跟输出的大小也有关？如果我一次性 &#96;ngx.say&#96; 了很多内容，是否会分成多个 &#96;chunks&#96;发送？如果响应来自上游服务器，&#96;chunks&#96; 的数目又怎么定？">
 <meta property="og:type" content="article">
 <meta property="og:title" content="OpenResty 使用body_filter_by_lua* 修改返回内容">
 <meta property="og:url" content="https://www.panaihua.com/openresty-body-filter/index.html">
 <meta property="og:site_name" content="人淡如菊">
-<meta property="og:description" content="背景测试开发环境所有前端页面需要嵌入一段前端脚本，方便开发者在手机浏览器里调试，类似小程序调试的功能。 谈谈 body_filter_by_lua* 多次调用的问题正如 OpenResty 文档中指出，body_filter_by_lua* 可能会在一次请求中多次调用。  Nginx output filters may be called multiple times for a single">
+<meta property="og:description" content="不过初看下来，很难将 &#96;echo hello world&#96;; 和 &#96;delivered in chunks&#96; 联系起来。这个 &#96;chunk&#96; 的大小是怎么确定的？看例子，应该跟 &#96;echo&#x2F;ngx.say&#96; 这一类输出方式有关。但是会不会跟输出的大小也有关？如果我一次性 &#96;ngx.say&#96; 了很多内容，是否会分成多个 &#96;chunks&#96;发送？如果响应来自上游服务器，&#96;chunks&#96; 的数目又怎么定？">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2020-11-15T16:00:00.000Z">
-<meta property="article:modified_time" content="2021-04-29T09:24:52.409Z">
+<meta property="article:published_time" content="2021-04-28T16:00:00.000Z">
 <meta property="article:author" content="谏言">
 <meta property="article:tag" content="OpenResty">
 <meta name="twitter:card" content="summary">
@@ -113,7 +112,7 @@
       <h1 class="site-title">人淡如菊</h1>
       <span class="logo-line-after"><i></i></span>
     </a>
-      <p class="site-subtitle" itemprop="description">坚持分享，不断总结，为了自己的同时也帮助别人</p>
+      <p class="site-subtitle" itemprop="description">不断总结，只有成长生命才有意义</p>
   </div>
 
   <div class="site-nav-right">
@@ -198,15 +197,8 @@
               </span>
               <span class="post-meta-item-text">发表于</span>
 
-              <time title="创建时间：2020-11-16 00:00:00" itemprop="dateCreated datePublished" datetime="2020-11-16T00:00:00+08:00">2020-11-16</time>
+              <time title="创建时间：2021-04-29 00:00:00" itemprop="dateCreated datePublished" datetime="2021-04-29T00:00:00+08:00">2021-04-29</time>
             </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-29 17:24:52" itemprop="dateModified" datetime="2021-04-29T17:24:52+08:00">2021-04-29</time>
-              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -230,7 +222,7 @@
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>8 分钟</span>
+              <span>9 分钟</span>
             </span>
 
         </div>
@@ -274,14 +266,13 @@
 <h4 id="需要注意的地方"><a href="#需要注意的地方" class="headerlink" title="需要注意的地方"></a>需要注意的地方</h4><p>还有一个特别需要注意地方是，当代码运行到 <code>body_filter_by_lua*</code> 时，<code>HTTP</code>报头（header）已经发送出去了。如果在之前设置了跟响应体相关的报头，而又在 <code>body_filter_by_lua*</code>中修改了响应体，会导致响应报头和实际响应的不一致。举个简单的例子：假设上游的服务器返回了 <code>Content-Length</code> 报头，而 <code>body_filter_by_lua*</code> 又修改了响应体的实际大小。客户端收到这个报头后，按其中的 <code>Content-Length</code> 去处理，顺着一头栽进坑里。由于 <code>Nginx</code> 的流式响应，发出去的报头就像泼出去的水，要想修改只能提前进行。<code>OpenResty</code> 提供了跟 <code>body_filter_by_lua*</code> 相对应的 <code>header_filter_by_lua*</code>。<code>header_filter</code> 会在 <code>Nginx</code> 发送报头之前调用，所以可以在这里置空 <code>Content-Length</code> 报头：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">header_filter_by_lua_block &#123;</span><br><span class="line">    ngx.header.content_length &#x3D; nil</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>现在 <code>Nginx</code> 会代以 <code>Transfer-Encoding: chunked</code>，再也不会误导客户端了。同样可能需要处理的还有 <code>accept-range</code> 和 <code>etag</code> 等跟响应体相关的报头。</p>
+<p>现在 <code>Nginx</code> 会代以 <code>Transfer-Encoding: chunked</code>，再也不会误导客户端了。同样可能需要处理的还有 <code>accept-range</code> 和 <code>etag</code> 等跟响应体相关的报头。HTTP1.1 之后基于流式处理的方式，<code>body_filter_by_lua</code> 基本在一个请求中会调用多次。 简单直白的理解就是流式输出，每次拿到了如果你要处理那么就处理，不处理就输出！！</p>
 <h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><ul>
 <li><code>body_filter_by_lua*</code> 可能在一次请求中调用多次，跟响应数据量无关，取决于响应次数</li>
 <li><code>body_filter_by_lua*</code> 的最后一次调用时，<code>ngx.arg[1]</code> 一般为空字符串</li>
 <li><code>body_filter_by_lua*</code> 也会在 <code>subrequest</code> 之中调用</li>
 <li><code>body_filter_by_lua*</code> 有些时候离不开有 <code>header_filter_by_lua*</code> 辅佐</li>
 </ul>
-<h6 id="延伸阅读"><a href="#延伸阅读" class="headerlink" title="延伸阅读"></a>延伸阅读</h6><p><a target="_blank" rel="noopener" href="https://www.dazhuanlan.com/2019/08/30/5d6859a908b16/">由RestartClassLoader探索Springboot热部署</a></p>
 
     </div>
 
@@ -300,13 +291,10 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/pyppeteer-process/" rel="prev" title="pyppeteer 内存泄漏排查">
-      <i class="fa fa-chevron-left"></i> pyppeteer 内存泄漏排查
+    <a href="/android-catchhttp/" rel="prev" title="Android 破解APP抓包限制(绕开https的SSL Pinning)">
+      <i class="fa fa-chevron-left"></i> Android 破解APP抓包限制(绕开https的SSL Pinning)
     </a></div>
-      <div class="post-nav-item">
-    <a href="/spring-bean/" rel="next" title="Spring 关于getBeansOfType获取不到实例的问题">
-      Spring 关于getBeansOfType获取不到实例的问题 <i class="fa fa-chevron-right"></i>
-    </a></div>
+      <div class="post-nav-item"></div>
     </div>
       </footer>
     
@@ -366,7 +354,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%B0%88%E8%B0%88-body-filter-by-lua-%E5%A4%9A%E6%AC%A1%E8%B0%83%E7%94%A8%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">2.</span> <span class="nav-text">谈谈 body_filter_by_lua* 多次调用的问题</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%87%AA%E8%A1%8C%E5%B0%9D%E8%AF%95"><span class="nav-number">3.</span> <span class="nav-text">自行尝试</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%9C%80%E8%A6%81%E6%B3%A8%E6%84%8F%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-number">4.</span> <span class="nav-text">需要注意的地方</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a><ol class="nav-child"><li class="nav-item nav-level-6"><a class="nav-link" href="#%E5%BB%B6%E4%BC%B8%E9%98%85%E8%AF%BB"><span class="nav-number">5.0.1.</span> <span class="nav-text">延伸阅读</span></a></li></ol></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%B0%88%E8%B0%88-body-filter-by-lua-%E5%A4%9A%E6%AC%A1%E8%B0%83%E7%94%A8%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">2.</span> <span class="nav-text">谈谈 body_filter_by_lua* 多次调用的问题</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%87%AA%E8%A1%8C%E5%B0%9D%E8%AF%95"><span class="nav-number">3.</span> <span class="nav-text">自行尝试</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%9C%80%E8%A6%81%E6%B3%A8%E6%84%8F%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-number">4.</span> <span class="nav-text">需要注意的地方</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
