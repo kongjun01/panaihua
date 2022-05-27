@@ -1,0 +1,739 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="谏言">
+  <meta name="keywords" content="人淡如菊，不断总结，只有成长生命才有意义">
+  
+    <meta name="description" content="GC日志是一个很重要的工具，它准确记录了每一次的GC的执行时间和执行结果，通过分析GC日志可以优化堆设置和GC设置，或者改进应用程序的对象分配模式。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JVM GC日志收集">
+<meta property="og:url" content="https://www.panaihua.com/jvm-gc-log/index.html">
+<meta property="og:site_name" content="人淡如菊">
+<meta property="og:description" content="GC日志是一个很重要的工具，它准确记录了每一次的GC的执行时间和执行结果，通过分析GC日志可以优化堆设置和GC设置，或者改进应用程序的对象分配模式。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2016-04-21T16:00:00.000Z">
+<meta property="article:modified_time" content="2022-05-20T07:22:35.587Z">
+<meta property="article:author" content="谏言">
+<meta property="article:tag" content="GC">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+    <meta name="referrer" content="no-referrer-when-downgrade">
+  
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-8D07XH377R"></script>
+  
+  <title>JVM GC日志收集 - 人淡如菊</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"www.panaihua.com","root":"/","version":"1.9.0","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":null,"gtag":null,"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+
+  
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>人淡如菊</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                标签
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              &nbsp;<i class="iconfont icon-search"></i>&nbsp;
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="JVM GC日志收集"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2016-04-22 00:00" pubdate>
+          2016年4月22日 凌晨
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          4.6k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          39 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">JVM GC日志收集</h1>
+            
+            <div class="markdown-body">
+              
+              <p>GC日志是一个很重要的工具，它准确记录了每一次的GC的执行时间和执行结果，通过分析GC日志可以优化堆设置和GC设置，或者改进应用程序的对象分配模式。</p>
+<h2 id="XX-PrintGC"><a href="#XX-PrintGC" class="headerlink" title="-XX:+PrintGC"></a>-XX:+PrintGC</h2><p>参数-XX:+PrintGC（或者-verbose:gc）开启了简单GC日志模式，为每一次新生代（young generation）的GC和每一次的Full GC打印一行信息。下面举例说明：</p>
+<figure class="highlight mathematica"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs mathematica"><span class="hljs-punctuation">[</span><span class="hljs-variable">GC</span> <span class="hljs-number">246656</span><span class="hljs-built_in">K</span><span class="hljs-operator">-&gt;</span><span class="hljs-number">243120</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">(</span><span class="hljs-number">376320</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">)</span><span class="hljs-operator">,</span> <span class="hljs-number">0.0929090</span> <span class="hljs-variable">secs</span><span class="hljs-punctuation">]</span><br><span class="hljs-punctuation">[</span><span class="hljs-built_in">Full</span> <span class="hljs-variable">GC</span> <span class="hljs-number">243120</span><span class="hljs-built_in">K</span><span class="hljs-operator">-&gt;</span><span class="hljs-number">241951</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">(</span><span class="hljs-number">629760</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">)</span><span class="hljs-operator">,</span> <span class="hljs-number">1.5589690</span> <span class="hljs-variable">secs</span><span class="hljs-punctuation">]</span><br></code></pre></td></tr></table></figure>
+<p>每行开始首先是GC的类型（可以是“GC”或者“Full GC”），然后是在GC之前和GC之后已使用的堆空间，再然后是当前的堆容量，最后是GC持续的时间（以秒计）。<br>第一行的意思就是GC将已使用的堆空间从246656K减少到243120K，当前的堆容量（译者注：GC发生时）是376320K，GC持续的时间是0.0929090秒。<br>简单模式的GC日志格式是与GC算法无关的，日志也没有提供太多的信息。在上面的例子中，我们甚至无法从日志中判断是否GC将一些对象从young generation移到了old generation。所以详细模式的GC日志更有用一些。</p>
+<h2 id="XX-PrintGCDetails"><a href="#XX-PrintGCDetails" class="headerlink" title="-XX:PrintGCDetails"></a>-XX:PrintGCDetails</h2><p>如果不是使用-XX:+PrintGC，而是-XX:PrintGCDetails，就开启了详细GC日志模式。在这种模式下，日志格式和所使用的GC算法有关。我们首先看一下使用Throughput垃圾收集器在young generation中生成的日志。为了便于阅读这里将一行日志分为多行并使用缩进。</p>
+<figure class="highlight mathematica"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs mathematica"><span class="hljs-punctuation">[</span><span class="hljs-variable">GC</span> <span class="hljs-punctuation">[</span><span class="hljs-variable">PSYoungGen</span><span class="hljs-operator">:</span> <span class="hljs-number">142816</span><span class="hljs-built_in">K</span><span class="hljs-operator">-&gt;</span><span class="hljs-number">10752</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">(</span><span class="hljs-number">142848</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">)</span><span class="hljs-punctuation">]</span> <span class="hljs-number">246648</span><span class="hljs-built_in">K</span><span class="hljs-operator">-&gt;</span><span class="hljs-number">243136</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">(</span><span class="hljs-number">375296</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">)</span><span class="hljs-operator">,</span> <span class="hljs-number">0.0935090</span><span class="hljs-variable">secs</span><span class="hljs-punctuation">]</span><br><span class="hljs-punctuation">[</span><span class="hljs-built_in">Times</span><span class="hljs-operator">:</span> <span class="hljs-variable">user</span><span class="hljs-operator">=</span><span class="hljs-number">0.55</span> <span class="hljs-variable">sys</span><span class="hljs-operator">=</span><span class="hljs-number">0.10</span><span class="hljs-operator">,</span> <span class="hljs-variable">real</span><span class="hljs-operator">=</span><span class="hljs-number">0.09</span> <span class="hljs-variable">secs</span><span class="hljs-punctuation">]</span><br></code></pre></td></tr></table></figure>
+<p>我们可以很容易发现：这是一次在young generation中的GC，它将已使用的堆空间从246648K减少到了243136K，用时0.0935090秒。此外我们还可以得到更多的信息：所使用的垃圾收集器（即PSYoungGen）、young generation的大小和使用情况（在这个例子中“PSYoungGen”垃圾收集器将young generation所使用的堆空间从142816K减少到10752K）。<br>既然我们已经知道了young generation的大小，所以很容易判定发生了GC，因为young generation无法分配更多的对象空间：已经使用了142848K中的142816K。我们可以进一步得出结论，多数从young generation移除的对象仍然在堆空间中，只是被移到了old generation：通过对比绿色的和蓝色的部分可以发现即使young generation几乎被完全清空（从142816K减少到10752K），但是所占用的堆空间仍然基本相同（从246648K到243136K）。<br>详细日志的“Times”部分包含了GC所使用的CPU时间信息，分别为操作系统的用户空间和系统空间所使用的时间。同时，它显示了GC运行的“真实”时间（0.09秒是0.0929090秒的近似值）。如果CPU时间（译者注：0.55秒+0.10秒）明显多于”真实“时间（译者注：0.09秒），我们可以得出结论：GC使用了多线程运行。这样的话CPU时间就是所有GC线程所花费的CPU时间的总和。实际上我们的例子中的垃圾收集器使用了8个线程。  </p>
+<p>接下来看一下Full GC的输出日志</p>
+<figure class="highlight mathematica"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs mathematica"><span class="hljs-punctuation">[</span><span class="hljs-built_in">Full</span> <span class="hljs-variable">GC</span><br>     <span class="hljs-punctuation">[</span><span class="hljs-variable">PSYoungGen</span><span class="hljs-operator">:</span> <span class="hljs-number">10752</span><span class="hljs-built_in">K</span><span class="hljs-operator">-&gt;</span><span class="hljs-number">9707</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">(</span><span class="hljs-number">142848</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">)</span><span class="hljs-punctuation">]</span><br>     <span class="hljs-punctuation">[</span><span class="hljs-variable">ParOldGen</span><span class="hljs-operator">:</span> <span class="hljs-number">232384</span><span class="hljs-built_in">K</span><span class="hljs-operator">-&gt;</span><span class="hljs-number">232244</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">(</span><span class="hljs-number">485888</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">)</span><span class="hljs-punctuation">]</span> <span class="hljs-number">243136</span><span class="hljs-built_in">K</span><span class="hljs-operator">-&gt;</span><span class="hljs-number">241951</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">(</span><span class="hljs-number">628736</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">)</span><br>     <span class="hljs-punctuation">[</span><span class="hljs-variable">PSPermGen</span><span class="hljs-operator">:</span> <span class="hljs-number">3162</span><span class="hljs-built_in">K</span><span class="hljs-operator">-&gt;</span><span class="hljs-number">3161</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">(</span><span class="hljs-number">21504</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">)</span><span class="hljs-punctuation">]</span><span class="hljs-operator">,</span> <span class="hljs-number">1.5265450</span> <span class="hljs-variable">secs</span><br><span class="hljs-punctuation">]</span><br></code></pre></td></tr></table></figure>
+<p>除了关于young generation的详细信息，日志也提供了old generation和permanent generation的详细信息。对于这三个generations，一样也可以看到所使用的垃圾收集器、堆空间的大小、GC前后的堆使用情况。需要注意的是显示堆空间的大小等于young generation和old generation各自堆空间的和。以上面为例，堆空间总共占用了241951K，其中9707K在young generation，232244K在old generation。Full GC持续了大约1.53秒，用户空间的CPU执行时间为10.96秒，说明GC使用了多线程（和之前一样8个线程）。<br>对不同generation详细的日志可以让我们分析GC的原因，如果某个generation的日志显示在GC之前，堆空间几乎被占满，那么很有可能就是这个generation触发了GC。但是在上面的例子中，三个generation中的任何一个都不是这样的，在这种情况下是什么原因触发了GC呢。对于Throughput垃圾收集器，在某一个generation被过度使用之前，GC ergonomics（参考本系列第6节）决定要启动GC。<br>Full GC也可以通过显式的请求而触发，可以是通过应用程序，或者是一个外部的JVM接口。这样触发的GC可以很容易在日志里分辨出来，因为输出的日志是以“Full GC(System)”开头的，而不是“Full GC”。<br>对于Serial垃圾收集器，详细的GC日志和Throughput垃圾收集器是非常相似的。唯一的区别是不同的generation日志可能使用了不同的GC算法（例如：old generation的日志可能以Tenured开头，而不是ParOldGen）。使用垃圾收集器作为一行日志的开头可以方便我们从日志就判断出JVM的GC设置。<br>对于CMS垃圾收集器，young generation的详细日志也和Throughput垃圾收集器非常相似，但是old generation的日志却不是这样。对于CMS垃圾收集器，在old generation中的GC是在不同的时间片内与应用程序同时运行的。GC日志自然也和Full GC的日志不同。而且在不同时间片的日志夹杂着在此期间young generation的GC日志。但是了解了上面介绍的GC日志的基本元素，也不难理解在不同时间片内的日志。只是在解释GC运行时间时要特别注意，由于大多数时间片内的GC都是和应用程序同时运行的，所以和那种独占式的GC相比，GC的持续时间更长一些并不说明一定有问题。<br>正如我们在第7节中所了解的，即使CMS垃圾收集器没有完成一个CMS周期，Full GC也可能会发生。如果发生了GC，在日志中会包含触发Full GC的原因，例如众所周知的”concurrent mode failure“。<br>为了避免过于冗长，我这里就不详细说明CMS垃圾收集器的日志了。另外，CMS垃圾收集器的作者做了详细的说明（在这里），强烈建议阅读。  </p>
+<h2 id="XX-PrintGCTimeStamps和-XX-PrintGCDateStamps"><a href="#XX-PrintGCTimeStamps和-XX-PrintGCDateStamps" class="headerlink" title="-XX:+PrintGCTimeStamps和-XX:+PrintGCDateStamps"></a>-XX:+PrintGCTimeStamps和-XX:+PrintGCDateStamps</h2><p>使用-XX:+PrintGCTimeStamps可以将时间和日期也加到GC日志中。表示自JVM启动至今的时间戳会被添加到每一行中。例子如下：</p>
+<figure class="highlight mathematica"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs mathematica"><span class="hljs-number">0.185</span><span class="hljs-operator">:</span> <span class="hljs-punctuation">[</span><span class="hljs-variable">GC</span> <span class="hljs-number">66048</span><span class="hljs-built_in">K</span><span class="hljs-operator">-&gt;</span><span class="hljs-number">53077</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">(</span><span class="hljs-number">251392</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">)</span><span class="hljs-operator">,</span> <span class="hljs-number">0.0977580</span> <span class="hljs-variable">secs</span><span class="hljs-punctuation">]</span><br><span class="hljs-number">0.323</span><span class="hljs-operator">:</span> <span class="hljs-punctuation">[</span><span class="hljs-variable">GC</span> <span class="hljs-number">119125</span><span class="hljs-built_in">K</span><span class="hljs-operator">-&gt;</span><span class="hljs-number">114661</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">(</span><span class="hljs-number">317440</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">)</span><span class="hljs-operator">,</span> <span class="hljs-number">0.1448850</span> <span class="hljs-variable">secs</span><span class="hljs-punctuation">]</span><br><span class="hljs-number">0.603</span><span class="hljs-operator">:</span> <span class="hljs-punctuation">[</span><span class="hljs-variable">GC</span> <span class="hljs-number">246757</span><span class="hljs-built_in">K</span><span class="hljs-operator">-&gt;</span><span class="hljs-number">243133</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">(</span><span class="hljs-number">375296</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">)</span><span class="hljs-operator">,</span> <span class="hljs-number">0.2860800</span> <span class="hljs-variable">secs</span><span class="hljs-punctuation">]</span><br></code></pre></td></tr></table></figure>
+<p>如果指定了-XX:+PrintGCDateStamps，每一行就添加上了绝对的日期和时间。 </p>
+<figure class="highlight apache"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs apache"><span class="hljs-attribute">2014</span>-<span class="hljs-number">01</span>-<span class="hljs-number">03</span>T12:<span class="hljs-number">08</span>:<span class="hljs-number">38</span>.<span class="hljs-number">102</span>-<span class="hljs-number">0100</span>:<span class="hljs-meta"> [GC 66048K-&gt;53077K(251392K), 0.0959470 secs]</span><br><span class="hljs-attribute">2014</span>-<span class="hljs-number">01</span>-<span class="hljs-number">03</span>T12:<span class="hljs-number">08</span>:<span class="hljs-number">38</span>.<span class="hljs-number">239</span>-<span class="hljs-number">0100</span>:<span class="hljs-meta"> [GC 119125K-&gt;114661K(317440K), 0.1421720 secs]</span><br><span class="hljs-attribute">2014</span>-<span class="hljs-number">01</span>-<span class="hljs-number">03</span>T12:<span class="hljs-number">08</span>:<span class="hljs-number">38</span>.<span class="hljs-number">513</span>-<span class="hljs-number">0100</span>:<span class="hljs-meta"> [GC 246757K-&gt;243133K(375296K), 0.2761000 secs]</span><br></code></pre></td></tr></table></figure>
+<p>如果需要也可以同时使用两个参数。推荐同时使用这两个参数，因为这样在关联不同来源的GC日志时很有帮助。  </p>
+<h2 id="Xloggc"><a href="#Xloggc" class="headerlink" title="-Xloggc"></a>-Xloggc</h2><p>缺省的GC日志时输出到终端的，使用-Xloggc:也可以输出到指定的文件。需要注意这个参数隐式的设置了参数-XX:+PrintGC和-XX:+PrintGCTimeStamps，但为了以防在新版本的JVM中有任何变化，我仍建议显示的设置这些参数。  </p>
+<h2 id="可管理的JVM参数"><a href="#可管理的JVM参数" class="headerlink" title="可管理的JVM参数"></a>可管理的JVM参数</h2><p>一个常常被讨论的问题是在生产环境中GC日志是否应该开启。因为它所产生的开销通常都非常有限，因此我的答案是需要开启。但并不一定在启动JVM时就必须指定GC日志参数。<br>针对高延迟问题调优HotSpot VM时，下面两个命令行选项特别有用，通过它们可以获得应用程序由于执行VM安全操作而阻塞的时间以及两个安全点操作之间应用程序运行的时间。  </p>
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs ruby">-<span class="hljs-variable constant_">XX</span><span class="hljs-symbol">:+PrintGCApplicationStoppedTime</span><br>-<span class="hljs-variable constant_">XX</span><span class="hljs-symbol">:+PrintGCApplicationConcurrentTime</span><br></code></pre></td></tr></table></figure>
+<p>何谓安全操作：安全操作使JVM进入到一种状态：所有的java应用线程都被阻塞、执行本地代码的线程都被禁止返回VM执行Java代码。安全操作常用于虚拟机需要进行内部操作时，此时所有的Java线程都被显式地置于阻塞状态且不能修改Java堆的情况。<br>HotSpot JVM有一类特别的参数叫做可管理的参数。对于这些参数，可以在运行时修改他们的值。我们这里所讨论的所有参数以及以“PrintGC”开头的参数都是可管理的参数。这样在任何时候我们都可以开启或是关闭GC日志。比如我们可以使用JDK自带的jinfo工具来设置这些参数，或者是通过JMX客户端调用HotSpotDiagnostic MXBean的setVMOption方法来设置这些参数。<br>附上tomcat输出gc日志的配置：</p>
+<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs routeros"><span class="hljs-built_in">export</span> <span class="hljs-attribute">CATALINA_OPTS</span>=<span class="hljs-string">&quot;<span class="hljs-variable">$CATALINA_OPTS</span> -XX:+PrintGCDetails&quot;</span><br><span class="hljs-built_in">export</span> <span class="hljs-attribute">CATALINA_OPTS</span>=<span class="hljs-string">&quot;<span class="hljs-variable">$CATALINA_OPTS</span> -XX:+PrintGCTimeStamps&quot;</span><br><span class="hljs-built_in">export</span> <span class="hljs-attribute">CATALINA_OPTS</span>=<span class="hljs-string">&quot;<span class="hljs-variable">$CATALINA_OPTS</span> -XX:+PrintGCDateStamps&quot;</span><br><span class="hljs-built_in">export</span> <span class="hljs-attribute">CATALINA_OPTS</span>=<span class="hljs-string">&quot;<span class="hljs-variable">$CATALINA_OPTS</span> -Xloggc:/data/logs/ordercenter_cms/tomcat.gc.log&quot;</span><br><span class="hljs-built_in">export</span> <span class="hljs-attribute">JAVA_OPTS</span>=<span class="hljs-string">&quot;-server -Xms1024m -Xmx1536m&quot;</span><br></code></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+
+
+              
+            </div>
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/Java/" class="category-chain-item">Java</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/GC/">#GC</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>JVM GC日志收集</div>
+      <div>https://www.panaihua.com/jvm-gc-log/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>谏言</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2016年4月22日</div>
+        </div>
+      
+      
+      <div class="license-meta-item">
+        <div>许可协议</div>
+        <div>
+          
+            
+            
+              <a target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+              <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                <i class="iconfont icon-by"></i>
+              </span>
+              </a>
+            
+          
+        </div>
+      </div>
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/jvm-memory-gc/" title="JVM 常用垃圾回收机制和垃圾收集器">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">JVM 常用垃圾回收机制和垃圾收集器</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/jvm-gc-tactics/" title="JVM GC 策略&amp;内存申请、对象衰老">
+                        <span class="hidden-mobile">JVM GC 策略&amp;内存申请、对象衰老</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+    <div class="statistics">
+  
+  
+
+  
+    
+      <span id="busuanzi_container_site_pv" style="display: none">
+        总访问量 
+        <span id="busuanzi_value_site_pv"></span>
+         次
+      </span>
+    
+    
+      <span id="busuanzi_container_site_uv" style="display: none">
+        总访客数 
+        <span id="busuanzi_value_site_uv"></span>
+         人
+      </span>
+    
+    
+  
+</div>
+
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.0/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.18.0/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      headingSelector : CONFIG.toc.headingSelector || 'h1,h2,h3,h4,h5,h6',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      collapseDepth   : CONFIG.toc.collapseDepth || 0,
+      scrollSmooth    : true,
+      headingsOffset  : -boardTop
+    });
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+  });
+</script>
+
+
+  <script>
+  (function() {
+    var enableLang = CONFIG.code_language.enable && CONFIG.code_language.default;
+    var enableCopy = CONFIG.copy_btn;
+    if (!enableLang && !enableCopy) {
+      return;
+    }
+
+    function getBgClass(ele) {
+      return Fluid.utils.getBackgroundLightness(ele) >= 0 ? 'code-widget-light' : 'code-widget-dark';
+    }
+
+    var copyTmpl = '';
+    copyTmpl += '<div class="code-widget">';
+    copyTmpl += 'LANG';
+    copyTmpl += '</div>';
+    jQuery('.markdown-body pre').each(function() {
+      var $pre = jQuery(this);
+      if ($pre.find('code.mermaid').length > 0) {
+        return;
+      }
+      if ($pre.find('span.line').length > 0) {
+        return;
+      }
+
+      var lang = '';
+
+      if (enableLang) {
+        lang = CONFIG.code_language.default;
+        if ($pre[0].children.length > 0 && $pre[0].children[0].classList.length >= 2 && $pre.children().hasClass('hljs')) {
+          lang = $pre[0].children[0].classList[1];
+        } else if ($pre[0].getAttribute('data-language')) {
+          lang = $pre[0].getAttribute('data-language');
+        } else if ($pre.parent().hasClass('sourceCode') && $pre[0].children.length > 0 && $pre[0].children[0].classList.length >= 2) {
+          lang = $pre[0].children[0].classList[1];
+          $pre.parent().addClass('code-wrapper');
+        } else if ($pre.parent().hasClass('markdown-body') && $pre[0].classList.length === 0) {
+          $pre.wrap('<div class="code-wrapper"></div>');
+        }
+        lang = lang.toUpperCase().replace('NONE', CONFIG.code_language.default);
+      }
+      $pre.append(copyTmpl.replace('LANG', lang).replace('code-widget">',
+        getBgClass($pre[0]) + (enableCopy ? ' code-widget copy-btn" data-clipboard-snippet><i class="iconfont icon-copy"></i>' : ' code-widget">')));
+
+      if (enableCopy) {
+        Fluid.utils.createScript('https://lib.baomitu.com/clipboard.js/2.0.10/clipboard.min.js', function() {
+          var clipboard = new window.ClipboardJS('.copy-btn', {
+            target: function(trigger) {
+              var nodes = trigger.parentNode.childNodes;
+              for (var i = 0; i < nodes.length; i++) {
+                if (nodes[i].tagName === 'CODE') {
+                  return nodes[i];
+                }
+              }
+            }
+          });
+          clipboard.on('success', function(e) {
+            e.clearSelection();
+            e.trigger.innerHTML = e.trigger.innerHTML.replace('icon-copy', 'icon-success');
+            setTimeout(function() {
+              e.trigger.innerHTML = e.trigger.innerHTML.replace('icon-success', 'icon-copy');
+            }, 2000);
+          });
+        });
+      }
+    });
+  })();
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+  <script defer src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" ></script>
+
+
+
+
+  
+<script src="/js/custom.js"></script>
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
