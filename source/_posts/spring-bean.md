@@ -37,24 +37,24 @@ getBeansOfType的源码：
 
 ```java
 @Override
-	public String[] getBeanNamesForType(@Nullable Class<?> type, boolean includeNonSingletons, boolean allowEagerInit) {
-		if (!isConfigurationFrozen() || type == null || !allowEagerInit) {
-			return doGetBeanNamesForType(ResolvableType.forRawClass(type), includeNonSingletons, allowEagerInit);
-		}
-		Map<Class<?>, String[]> cache =
-				(includeNonSingletons ? this.allBeanNamesByType : this.singletonBeanNamesByType);
-		String[] resolvedBeanNames = cache.get(type);
-		if (resolvedBeanNames != null) {
-			return resolvedBeanNames;
-		}
-		
-		// 上面内容是去缓存中获取，如果获取不到走下面的方法，同时会更新的bean的缓存
-		resolvedBeanNames = doGetBeanNamesForType(ResolvableType.forRawClass(type), includeNonSingletons, true);
-		if (ClassUtils.isCacheSafe(type, getBeanClassLoader())) {
-			cache.put(type, resolvedBeanNames);
-		}
+public String[] getBeanNamesForType(@Nullable Class<?> type, boolean includeNonSingletons, boolean allowEagerInit) {
+	if (!isConfigurationFrozen() || type == null || !allowEagerInit) {
+		return doGetBeanNamesForType(ResolvableType.forRawClass(type), includeNonSingletons, allowEagerInit);
+	}
+	Map<Class<?>, String[]> cache =
+			(includeNonSingletons ? this.allBeanNamesByType : this.singletonBeanNamesByType);
+	String[] resolvedBeanNames = cache.get(type);
+	if (resolvedBeanNames != null) {
 		return resolvedBeanNames;
 	}
+	
+	// 上面内容是去缓存中获取，如果获取不到走下面的方法，同时会更新的bean的缓存
+	resolvedBeanNames = doGetBeanNamesForType(ResolvableType.forRawClass(type), includeNonSingletons, true);
+	if (ClassUtils.isCacheSafe(type, getBeanClassLoader())) {
+		cache.put(type, resolvedBeanNames);
+	}
+	return resolvedBeanNames;
+}
 ```
 
 注释的下面一行获取的对象总是空对象，所以问题出在doGetBeanNamesForType这个方法

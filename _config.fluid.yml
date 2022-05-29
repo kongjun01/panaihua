@@ -43,18 +43,6 @@ render_drafts: false
 post_asset_folder: false
 relative_link: false
 future: true
-highlight:
-  enable: true
-  line_number: true
-  auto_detect: false
-  tab_replace: ''
-  wrap: true
-  hljs: false
-prismjs:
-  enable: false
-  preprocess: true
-  line_number: true
-  tab_replace: ''
 
 # Home page setting
 # path: Root path for your blogs index page. (default = '')
@@ -110,6 +98,9 @@ index:
 
 post:
   banner_img: /index_img/wallhaven1.jpeg
+  comments:
+    enable: true
+    type: valine
 
 archive:
   banner_img: /index_img/wallhaven.png
@@ -132,6 +123,9 @@ page404:
 links:
   banner_img: /index_img/wallhaven.png
 
+lazyload:
+  enable: true
+  onlypost: false
 
 footer:
   statistics:
@@ -139,18 +133,47 @@ footer:
     source: "busuanzi"  # 可选 leancloud | busuanzi  根据自己需求选择
     pv_format: "总访问量 {} 次"  # 显示的文本，{}是数字的占位符（必须包含)，下同
     uv_format: "总访客数 {} 人"
+  content: '
+    <div>
+      <span id="timeDate">载入天数...</span>
+      <span id="times">载入时分秒...</span>
+      <script src="/js/duration.js"></script>
+    </div>
+  ' 
 
 # web_analytics:  # 网页访问统计
 #   enable: true # 默认为false，启用网页统计改为true即可
 #   baidu: d95aaa0fb1f08b11ad55f2baeb0f2146
 #   google: G-8D07XH377R
 
+code:
+  highlight:
+    lib: "highlightjs"
+    highlightjs:
+      # 在链接中挑选 style 填入
+      # Select a style in the link
+      # See: https://highlightjs.org/static/demo/
+      style: "Atom One Dark Reasonable"
+      # 是否根据 style 改变代码背景色（如果 style 是深色背景别忘了开启此项）
+      # If true, the code background will change color based on the style (If style has a dark background, don't forget to true)
+      bg_color: true
 
-custom_js: /custom/tongji.js
-custom_head: '<script async src="https://www.googletagmanager.com/gtag/js?id=G-8D07XH377R"></script>'
+custom_js: 
+  - /custom/tongji.js
+  - //cdn.jsdelivr.net/gh/EmoryHuang/BlogBeautify@1.1/DynamicRibbon.min.js # 动态彩带
+  - //cdn.jsdelivr.net/gh/EmoryHuang/BlogBeautify@1.1/love.min.js # 鼠标点击出爱心
+
+custom_css: 
+  - /css/mac.css
+custom_head: '
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-8D07XH377R"></script>
+   <!-- 一言 -->
+  <script src="https://v1.hitokoto.cn/?encode=js&select=%23hitokoto" defer></script>
+'
 custom_html: ''
 
-all_minifier: false
+# 资源压缩
+all_minifier: true
 html_minifier:
   enable: true
   ignore_error: false
@@ -177,6 +200,44 @@ image_minifier:
   optimizationLevel: 2
   pngquant: false
   progressive: false
+
+
+# Valine
+# 基于 LeanCloud
+# Based on LeanCloud
+# See: https://valine.js.org/configuration.html
+valine:
+  appid: LmnypknE7JdzIRpDuaayApI7-MdYXbMMI
+  appkey: Gd5yMcsQPl74gn98o7Ul6aU9
+  placeholder: 说点什么
+  path: window.location.pathname
+  avatar: retro
+  meta: ['nick', 'mail', 'link']
+  pageSize: 10
+  lang: zh-CN
+  highlight: false
+  recordIP: false
+  serverURLs: https://lmnypkne.api.lncldglobal.com
+
+# 看板娘
+live2d:
+  model:
+    scale: 1
+    hHeadPos: 0.5
+    vHeadPos: 0.618
+    use: live2d-widget-model-shizuku // 下载的动画模型名称
+  display:
+    superSample: 2
+    width: 120
+    height: 200
+    position: right // 模型在网页显示位置,left为左,right为右
+    hOffset: 20
+    vOffset: 50
+  mobile:
+    show: false  // 移动设备是否显示,true则显示,false则不显示
+  react:
+    opacityDefault: 0.7
+    opacityOnHover: 0.2  
 
 # Deployment
 ## Docs: https://hexo.io/docs/one-command-deployment
