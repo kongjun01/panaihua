@@ -106,10 +106,32 @@ index:
     enable: true
     text: 愿命运 许给我们最初的温柔
   post_url_target: _blank
-  banner_img: /images/20191231163321.jpg
+  banner_img: /index_img/wallhaven2.png
 
 post:
-  banner_img: /images/20191231163321.jpg
+  banner_img: /index_img/wallhaven1.jpeg
+
+archive:
+  banner_img: /index_img/wallhaven.png
+
+category:
+  banner_img: /index_img/wallhaven.png
+
+tag:
+  banner_img: /index_img/wallhaven.png
+
+about:
+  banner_img: /index_img/wallhaven.png
+
+page:
+  banner_img: /index_img/wallhaven.png
+
+page404:
+  banner_img: /index_img/wallhaven.png
+
+links:
+  banner_img: /index_img/wallhaven.png
+
 
 footer:
   statistics:
@@ -128,7 +150,7 @@ custom_js: /custom/tongji.js
 custom_head: '<script async src="https://www.googletagmanager.com/gtag/js?id=G-8D07XH377R"></script>'
 custom_html: ''
 
-all_minifier: true
+all_minifier: false
 html_minifier:
   enable: true
   ignore_error: false

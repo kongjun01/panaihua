@@ -3,6 +3,7 @@ layout: post
 title: "MySQL Explain总结"
 date: 2016-05-10
 excerpt: "MySQL 查询优化器有几个目标,但是其中最主要的目标是尽可能地使用索引,并且使用最严格的索引来消除尽可能多的数据行。最终目标是提交 SELECT 语句查找数据行,而不是排除数据行。优化器试图排除数据行的原因在于它排除数据行的速度越快,那么找到与条件匹配的数据行也就越快。如果能够首先进行最严格的测试,查询就可以执行地更快."
+index_img: /index_img/mysql.png
 categories: 
 - Mysql
 tags: 

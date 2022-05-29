@@ -3,6 +3,7 @@ layout: post
 title: "mybaits 关于游标状态closed的问题"
 date: 2017-06-06
 excerpt: "由于数据不断增加，查询的时候如果一次性加载出来，会导致mybaits的mapper对象非常大，可以选择分页但是觉得太麻烦了所以选择了游标。之前使用游标是jdbc自带的，没有遇到读取数据游标状态会closed的情况。"
+index_img: /index_img/spring.png
 categories: 
 - Java
 tags: 

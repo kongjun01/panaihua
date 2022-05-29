@@ -3,6 +3,7 @@ layout: post
 title: "用Redis实现分布式锁"
 date: 2016-11-10
 excerpt: "Redis有一系列的命令，特点是以NX结尾，NX是Not eXists的缩写，如SETNX命令就应该理解为：SET if Not eXists。这系列的命令非常有用，这里讲使用SETNX来实现分布式锁."
+index_img: /index_img/redis.jpeg
 categories: 
 - Java
 tags: 

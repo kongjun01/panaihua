@@ -3,7 +3,7 @@ layout: post
 title: "Tomcat Cannot Allocate Memory"
 date: 2016-04-29
 excerpt: "今天测试环境的服务总是挂掉，上面部署了6个服务，也不怎么吃内存的。但是我这个服务总是启动之后过不了多久又挂了。"
-index_img: /index_img/java.png
+index_img: /index_img/tomcat.jpeg
 categories: 
 - Java
 tags: 

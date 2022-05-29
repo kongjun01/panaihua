@@ -3,6 +3,7 @@ layout: post
 title: "自适应限流 netflix-concurrency-limits"
 date: 2020-05-12
 excerpt: "一般的限流常常需要指定一个固定值(qps)作为限流开关的阈值，这个值一是靠经验判断，二是靠通过大量的测试数据得出。但这个阈值，在流量激增、系统自动伸缩或者某某commit了一段有毒代码后就有可能变得不那么合适了。并且一般业务方也不太能够正确评估自己的容量，去设置一个合适的限流阈值。"
+index_img: /index_img/netflix.png
 categories: 
 - Java
 tags: 

@@ -3,6 +3,7 @@ layout: post
 title: "MySQL 索引提高优化Order By"
 date: 2016-04-08
 excerpt: "在数据库中我们一般都会对一些字段进行索引操作，这样可以提升数据的查询速度，同时提高数据库的性能像order by ,group by前都需要索引哦。"
+index_img: /index_img/mysql.png
 categories: 
 - Mysql
 tags: 

@@ -3,6 +3,7 @@ layout: post
 title: "Guava Cache 在广告系统中的优化"
 date: 2017-08-24
 excerpt: "缓存，在我们日常开发中是必不可少的一种解决性能问题的方法。其主要作用是暂时在内存中保存业务系统的数据处理结果，并且等待下次访问使用。"
+index_img: /index_img/guava.png
 categories: 
 - Java
 tags: 

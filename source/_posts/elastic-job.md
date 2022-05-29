@@ -3,6 +3,7 @@ layout: post
 title: "elastic-job 在广告系统中的实践总结"
 date: 2017-12-26
 excerpt: "一般来说，系统可使用消息传递代替部分使用作业的场景。两者确有相似之处。可互相替换的场景，如队列表。将待处理的数据放入队列表，然后使用频率极短的定时任务拉取队列表的数据并处理。这种情况使用消息中间件的推送模式可更好的处理实时性数据。"
+index_img: /index_img/elastic-job.png
 categories: 
 - Java
 tags: 

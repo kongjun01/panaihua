@@ -3,6 +3,7 @@ layout: post
 title: "记一次 Binlog 的应用"
 date: 2019-01-18
 excerpt: "我们现在遇到一个问题，每次在发券系统里面增加一个表操作的时候，都会实现缓存，实现了缓存就要实现通知刷新，所以程序里只要有更新的操作都要硬编码发送一次消息。这个过程维护成本太大，就想到是否有什么方法可以实现自动通知刷新。"
+index_img: /index_img/mysql.png
 categories: 
 - Mysql
 tags: 

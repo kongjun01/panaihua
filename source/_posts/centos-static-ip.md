@@ -3,6 +3,7 @@ layout: post
 title: "CentOs 设置静态IP方法"
 date: 2016-04-12
 excerpt: "在做项目时由于公司局域网采用自动获取IP的方式，导到每次服务器重启主机IP都会变化。为了解决这个问题，参考了很多资料都没有效果，为了以后还会出现这种问题，所以将整个过程记录下来。"
+index_img: /index_img/ops.png
 categories: 
 - Linux
 tags: 

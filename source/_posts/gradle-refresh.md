@@ -3,6 +3,7 @@ layout: post
 title: "Gradle SNAPSHOT版本不能更新的问题"
 date: 2017-03-29
 excerpt: "团队里使用SNAPSHOT版本每次修改都要重新发布个版本，本身就是快照版，为什么都要升级呢，还不如用release版本呢。之前一直使用maven没有发现这个问题，是因为gradle为了加快构建的速度,对jar包默认会缓存24小时，缓存之后就不在请求远程仓库了。"
+index_img: /index_img/gradle.jpeg
 categories: 
 - Java
 tags: 

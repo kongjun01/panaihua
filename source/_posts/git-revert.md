@@ -3,6 +3,7 @@ layout: post
 title: "Git 如何撤销分支的merge"
 date: 2017-08-10
 excerpt: "今天同事不小心把develop未测试的代码合并到了master，想取消这次合并，让分支回到位，肿么办？如果master上已经有了新的提交以及没有新的提交都该怎么办？"
+index_img: /index_img/git.png
 categories: 
 - Linux
 tags: 
