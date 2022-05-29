@@ -10,7 +10,6 @@ keywords: 人淡如菊，不断总结，只有成长生命才有意义
 author: 谏言
 language: zh-CN
 timezone: ''
-banner_img: /images/20191231163321.jpg
 
 # URL
 ## Set your site url here. For example, if you use GitHub Page, set url as 'https://username.github.io/project'
@@ -106,7 +105,11 @@ index:
   slogan:
     enable: true
     text: 愿命运 许给我们最初的温柔
-  post_url_target: _blank  
+  post_url_target: _blank
+  banner_img: /images/20191231163321.jpg
+
+post:
+  banner_img: /images/20191231163321.jpg
 
 footer:
   statistics:

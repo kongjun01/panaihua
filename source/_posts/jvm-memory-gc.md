@@ -3,6 +3,7 @@ layout: post
 title: "JVM 常用垃圾回收机制和垃圾收集器"
 date: 2016-04-28
 excerpt: "这里列举常用的来及回收机制，都是网上一些资料搜罗整理的。"
+index_img: /index_img/java.png
 categories: 
 - Java
 tags: 

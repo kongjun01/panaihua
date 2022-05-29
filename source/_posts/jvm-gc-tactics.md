@@ -3,6 +3,7 @@ layout: post
 title: "JVM GC 策略&内存申请、对象衰老"
 date: 2016-04-21
 excerpt: "JVM里的GC(Garbage Collection)的算法有很多种，如标记清除收集器，压缩收集器，分代收集器等等,详见HotSpot VM GC 的种类"
+index_img: /index_img/java.png
 categories: 
 - Java
 tags: 

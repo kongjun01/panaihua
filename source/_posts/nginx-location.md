@@ -3,6 +3,7 @@ layout: post
 title: "Nginx 配置location 匹配规则总结"
 date: 2016-12-20
 excerpt: "项目拆分的时候，需要将老的请求转发到新的项目，配置location总是不生效，查资料发现是执行优先级的原因，现在对它的用法做个记录"
+index_img: /index_img/nginx.png
 categories: 
 - Nginx
 tags: 

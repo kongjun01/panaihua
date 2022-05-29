@@ -3,6 +3,7 @@ layout: post
 title: "Android 破解APP抓包限制(绕开https的SSL Pinning)"
 date: 2020-12-02
 excerpt: "这篇文章主要想解决的问题是，在对安卓手机APP抓包时，出现的HTTPS报文通过MITM代理后证书不被信任的问题。如果有些https，在之前设置了好各种证书和配置后，看到的unknown..而无法看到我们希望的明文数据"
+index_img: /index_img/android.jpg
 categories: 
 - Android
 tags: 

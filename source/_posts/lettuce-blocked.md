@@ -3,6 +3,7 @@ layout: post
 title: "springboot2 整合lettuce启动卡住的问题"
 date: 2020-11-26
 excerpt: "EasyCache升级兼容 `Springboot2`，有个业务系统启动总是会卡住，最后抛出超时异常，springboot 版本是 2.2.x，springCloudVersion 版本是 2.2.x, lettuce版本是5.2.x，如果使用jedis客户端没有，所以问题一定是出在lettuce。"
+index_img: /index_img/springboot.png
 categories: 
 - Java
 tags:

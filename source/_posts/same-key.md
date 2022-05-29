@@ -3,6 +3,7 @@ layout: post
 title: "如何判断SSL证书的私钥和证书匹配"
 date: 2019-05-22
 excerpt: "防止有人篡改证书或者私钥，导致网关无法解析，所以需要验证私钥和证书是否匹配。开始以为Java会有这种方法直接校验，网上找了一圈都没找到。翻了 `X509Certificate` 的源码，发现可以获取到公钥，那么也可以通过私钥获取到公钥，所以判断两个公钥是否相等就可以了。"
+index_img: /index_img/java.png
 categories: 
 - Java
 tags: 

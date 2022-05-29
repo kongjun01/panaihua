@@ -3,6 +3,7 @@ layout: post
 title: "python 模块的构建与发布 setup.py"
 date: 2020-11-20
 excerpt: "`setuptools` 是 distutils 增强版，不包括在标准库中。其扩展了很多功能，能够帮助开发者更好的创建和分发 Python 包。大部分 Python 用户都会使用更先进的 setuptools 模块..."
+index_img: /index_img/python.png
 categories: 
 - python
 tags:

@@ -4,6 +4,7 @@ title: "Nginx 轮询算法"
 date: 2022-05-20
 excerpt: "一般的反向代理服务器，都具备负载均衡的功能。负载均衡功能可以由硬件来提供，比如以前的F5设备。  
 也可以由软件来提供，LVS可以提供四层的负载均衡(利用IP和端口)，Haproxy和Nginx可以提供七层的负载均衡(利用应用层信息)。"
+index_img: /index_img/nginx.png
 categories: 
 - Nginx
 tags: 

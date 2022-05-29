@@ -3,6 +3,7 @@ layout: post
 title: "Spring 关于getBeansOfType获取不到实例的问题"
 date: 2020-11-16
 excerpt: "ElasticJob官方只有xml注册job，有很多job的时候文件非常臃肿而且不好维护，还有官方的控制台也不好用，系统多之后非常卡，页面加载的时候要一次性加载所有任务。所以我们开发出使用注解来创建job和自研的控制台。问题出在在手动触发job，通过job的class获取实例时获取不到，而且只有一个系统有问题"
+index_img: /index_img/springboot.png
 categories: 
 - Java
 tags: 

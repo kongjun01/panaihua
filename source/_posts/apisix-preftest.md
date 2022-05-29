@@ -3,6 +3,7 @@ layout: post
 title: "APISIX 与现有网关以及 SpringCloudGateWay 压测报告对比"
 date: 2021-07-22
 excerpt: "针对接口分别执行线程总数 400（jemter1台）、800（jemter2台） 进行压力测试，并对产生的每秒TPS，响应时间（min，ave，max）及错误率进行统计"
+index_img: /index_img/apisix.png
 categories: 
 - 网关
 tags: 

@@ -3,6 +3,7 @@ layout: post
 title: "J.U.C之AQS原理-CLH队列"
 date: 2020-01-09
 excerpt: "CLH 同步队列是一个 FIFO 双向队列，AQS 依赖它来完成同步状态的管理：当前线程如果获取同步状态失败时，AQS则会将当前线程已经等待状态等信息构造成一个节点（Node）并将其加入到CLH同步队列，同时会阻塞当前线程。当同步状态释放时，会将某个节点唤醒（是否首节点取决于公平锁/非公平锁），使其再次尝试获取同步状态。"
+index_img: /index_img/java.png
 categories: 
 - Java
 tags: 

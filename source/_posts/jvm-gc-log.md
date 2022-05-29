@@ -3,6 +3,7 @@ layout: post
 title: "JVM GC日志收集"
 date: 2016-04-22
 excerpt: "GC日志是一个很重要的工具，它准确记录了每一次的GC的执行时间和执行结果，通过分析GC日志可以优化堆设置和GC设置，或者改进应用程序的对象分配模式。"
+index_img: /index_img/java.png
 categories: 
 - Java
 tags: 

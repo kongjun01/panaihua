@@ -3,6 +3,7 @@ layout: post
 title: "OpenResty 使用body_filter_by_lua* 修改返回内容"
 date: 2021-04-29
 excerpt: "不过初看下来，很难将 `echo hello world`; 和 `delivered in chunks` 联系起来。这个 `chunk` 的大小是怎么确定的？看例子，应该跟 `echo/ngx.say` 这一类输出方式有关。但是会不会跟输出的大小也有关？如果我一次性 `ngx.say` 了很多内容，是否会分成多个 `chunks`发送？如果响应来自上游服务器，`chunks` 的数目又怎么定？"
+index_img: /index_img/openresty.jpeg
 categories: 
 - OpenResty
 tags: 

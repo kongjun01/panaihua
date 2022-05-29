@@ -3,6 +3,7 @@ layout: post
 title: "使用Airtest爬虫总结和注意事项"
 date: 2020-11-12
 excerpt: "一开始调研的时候使用的就是Appium，功能全，文档也很多，而且元素定位方式比Airtest靠谱很多。我们要爬的是美团的活动广告页，开始使用appinum都很顺利，但是遇到webview的时候，它的页面是canvas的结构，根本没办法使用元素定位，所以这个时候Airtest的图像定位就起作用了。"
+index_img: /index_img/python-spider.jpeg
 categories: 
 - 爬虫
 tags:

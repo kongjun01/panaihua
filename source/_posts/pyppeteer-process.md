@@ -5,6 +5,7 @@ date: 2020-11-13
 excerpt: "收到告警后，笔者先登录到告警机器中，
  top 命令查看此时此刻的各个应用程序占用的内存大小，发现没有占用很大内存的进程。
  执行 `ps -ef` 发现有很多chromium,查了资料都说是僵尸进程，但是僵尸进程应该不占用内存和cpu的..."
+index_img: /index_img/python-spider.jpeg
 categories: 
 - 爬虫
 tags:

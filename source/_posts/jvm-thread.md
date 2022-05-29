@@ -3,6 +3,7 @@ layout: post
 title: "如何定位消耗CPU最多的线程"
 date: 2017-06-29
 excerpt: "觉得【你假笨】的文章不错，也有梯度，我也慢慢消化，消化掉的文章在这里记录下，以后自己可以回过头来看看"
+index_img: /index_img/java.png
 categories: 
 - Java
 tags: 
